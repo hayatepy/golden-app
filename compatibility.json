@@ -1,33 +1,33 @@
 {
-  "generated_by": "create-hayate 0.4.0",
-  "lock_sha256": "349b2a1b014833c09a7539801bceeaabb33104161d596c93f861633f89138d9c",
+  "generated_by": "create-hayate 0.4.1",
+  "lock_sha256": "790b87a34366493f60cdda4560845b33dd7cef9184e3bef19700b889eb8c880b",
   "mcp_revision": "2025-11-25",
   "node": "24",
   "packages": [
     {
       "package": "create-hayate",
       "role": "Scaffold source",
-      "version": "0.4.0"
+      "version": "0.4.1"
     },
     {
       "package": "hayate",
       "role": "Application core and runtime adapters",
-      "version": "0.11.1"
+      "version": "0.11.2"
     },
     {
       "package": "hayate-openapi",
       "role": "OpenAPI 3.1 and Scalar",
-      "version": "0.3.0"
+      "version": "0.3.1"
     },
     {
       "package": "hayate-mcp",
       "role": "MCP transport and tools runtime",
-      "version": "0.10.0"
+      "version": "0.10.1"
     },
     {
       "package": "hayate-sql",
       "role": "Checked SQL and database adapters",
-      "version": "0.1.0"
+      "version": "0.1.1"
     },
     {
       "package": "workers-py",
