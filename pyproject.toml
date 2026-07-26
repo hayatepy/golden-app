@@ -1,0 +1,32 @@
+[project]
+name = "golden-app"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "hayate>=0.11.1,<0.12",
+  "hayate-sql>=0.1,<0.2",
+  "hayate-mcp>=0.10,<0.11",
+  "hayate-openapi>=0.3,<0.4",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.25",
+  "ruff>=0.16",
+  "uvicorn>=0.30",
+  "workers-py>=1.15,<2",
+  "workers-runtime-sdk>=1.6,<2",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]

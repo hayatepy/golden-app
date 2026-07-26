@@ -1,0 +1,53 @@
+{
+  "generated_by": "create-hayate 0.4.0",
+  "lock_sha256": "349b2a1b014833c09a7539801bceeaabb33104161d596c93f861633f89138d9c",
+  "mcp_revision": "2025-11-25",
+  "node": "24",
+  "packages": [
+    {
+      "package": "create-hayate",
+      "role": "Scaffold source",
+      "version": "0.4.0"
+    },
+    {
+      "package": "hayate",
+      "role": "Application core and runtime adapters",
+      "version": "0.11.1"
+    },
+    {
+      "package": "hayate-openapi",
+      "role": "OpenAPI 3.1 and Scalar",
+      "version": "0.3.0"
+    },
+    {
+      "package": "hayate-mcp",
+      "role": "MCP transport and tools runtime",
+      "version": "0.10.0"
+    },
+    {
+      "package": "hayate-sql",
+      "role": "Checked SQL and database adapters",
+      "version": "0.1.0"
+    },
+    {
+      "package": "workers-py",
+      "role": "Cloudflare Python APIs",
+      "version": "1.15.0"
+    },
+    {
+      "package": "workers-runtime-sdk",
+      "role": "Workers runtime packaging",
+      "version": "1.6.3"
+    }
+  ],
+  "python": "3.13",
+  "schema_version": 1,
+  "workers": {
+    "compatibility_date": "2026-07-01",
+    "default_entrypoint": "WorkerEntrypoint class",
+    "flags": [
+      "python_workers"
+    ],
+    "global_entrypoint": "HTTP-only compatibility mode"
+  }
+}
