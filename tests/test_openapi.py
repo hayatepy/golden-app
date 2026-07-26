@@ -1,0 +1,34 @@
+import pytest
+
+from app import app
+from tests.helpers import AUTH_HEADERS
+
+
+@pytest.mark.asyncio
+async def test_openapi_and_scalar_come_from_the_registered_routes():
+    response = await app.request("/openapi.json", headers=AUTH_HEADERS)
+    assert response.status == 200
+    document = await response.json()
+    assert document["openapi"] == "3.1.1"
+    assert "/todos" in document["paths"]
+    create = document["paths"]["/todos"]["post"]
+    assert create["operationId"] == "createTodo"
+    request_schema = create["requestBody"]["content"]["application/json"]["schema"]
+    assert request_schema["required"] == ["title"]
+    assert request_schema["properties"]["title"]["maxLength"] == 200
+    assert document["security"] == [{"CloudflareAccess": []}]
+    assert document["components"]["securitySchemes"]["CloudflareAccess"] == {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "CF_Authorization",
+        "description": (
+            "Cloudflare Access application token. Browser sessions send this "
+            "cookie through the Access proxy; service clients authenticate to "
+            "Access before the request reaches this application."
+        ),
+    }
+    assert document["paths"]["/health"]["get"]["security"] == []
+
+    docs = await app.request("/docs", headers=AUTH_HEADERS)
+    assert docs.status == 200
+    assert "content-security-policy" in docs.headers
