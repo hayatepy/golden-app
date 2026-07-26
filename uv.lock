@@ -148,7 +148,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "hayate", specifier = ">=0.11.2,<0.12" },
-    { name = "hayate-mcp", specifier = ">=0.10.1,<0.11" },
+    { name = "hayate-mcp", specifier = ">=0.11.0,<0.12" },
     { name = "hayate-openapi", specifier = ">=0.3.1,<0.4" },
     { name = "hayate-sql", specifier = ">=0.1.1,<0.2" },
 ]
@@ -186,7 +186,7 @@ wheels = [
 
 [[package]]
 name = "hayate-mcp"
-version = "0.10.1"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "hayate" },
@@ -194,9 +194,9 @@ dependencies = [
     { name = "mcp", marker = "sys_platform != 'emscripten'" },
     { name = "rpds-py", marker = "sys_platform == 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/5d/613d309548c33bcd28ec7326168081386a47d5ceb32d2058f7cf815121f4/hayate_mcp-0.10.1.tar.gz", hash = "sha256:e255dc113b535436a7714ab4f01e051ec15f05a2a4e86241785b9dce09fe7a75", size = 22154, upload-time = "2026-07-26T14:00:59.805Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/90/1de4b1a0be4ab2f1d8256aa02a82f1b5529d4ac1ce413e131eacc9b0acfe/hayate_mcp-0.11.0.tar.gz", hash = "sha256:4ac9e2c21ccc84a531dd6f85b809597a1c4b8cd5d2336aac8c1f774be5055519", size = 22715, upload-time = "2026-07-26T18:37:40.594Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/e0/9d1141e01d5dab11385a98fd1aca52e46073e21a97183f96656d89942ec3/hayate_mcp-0.10.1-py3-none-any.whl", hash = "sha256:7343d438c8e659a30c54f9cc6dd73a91188ef1a42ad4f02d1d152b8afdf8085e", size = 27021, upload-time = "2026-07-26T14:00:58.722Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/36/b9da3906b95a853367bac78b4c8e279680b3e7c4441f4bd4b525ad99b5ef/hayate_mcp-0.11.0-py3-none-any.whl", hash = "sha256:a0a052eab148a9cc8976d3eda923b0b83f4e6c22ee35679f3e2722c68a136dba", size = 27636, upload-time = "2026-07-26T18:37:39.344Z" },
 ]
 
 [[package]]

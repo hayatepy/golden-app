@@ -1,6 +1,6 @@
 {
   "generated_by": "create-hayate 0.4.1",
-  "lock_sha256": "790b87a34366493f60cdda4560845b33dd7cef9184e3bef19700b889eb8c880b",
+  "lock_sha256": "9fa53adb31a6ec33b480f2cc41a9b0237f24661ac94bf3545cf8cb5aac840c54",
   "mcp_revision": "2025-11-25",
   "node": "24",
   "packages": [
@@ -22,7 +22,7 @@
     {
       "package": "hayate-mcp",
       "role": "MCP transport and tools runtime",
-      "version": "0.10.1"
+      "version": "0.11.0"
     },
     {
       "package": "hayate-sql",
