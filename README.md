@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/hayatepy/golden-app/actions/workflows/ci.yml/badge.svg)](https://github.com/hayatepy/golden-app/actions/workflows/ci.yml)
 
+> **Hayate ecosystem:** [Start here](https://github.com/hayatepy/.github/blob/main/docs/START.md)
+> · [Production path](https://github.com/hayatepy/.github/blob/main/docs/PRODUCTION.md)
+> · [Tested compatibility](https://github.com/hayatepy/.github/blob/main/docs/COMPATIBILITY.md)
+
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
 `create-hayate==0.4.0` and contains one application core that runs unchanged
