@@ -204,6 +204,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         id: string;
                         title: string;
                         done: boolean;
@@ -235,6 +236,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         id: string;
                         title: string;
                         done: boolean;
@@ -268,6 +270,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         id: string;
                         title: string;
                         done: boolean;
@@ -303,6 +306,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation failed */
             400: {
                 headers: {

@@ -113,7 +113,8 @@
                     "type": "object",
                     "properties": {
                       "id": {
-                        "type": "string"
+                        "type": "string",
+                        "format": "uuid"
                       },
                       "title": {
                         "type": "string"
@@ -122,12 +123,12 @@
                         "type": "boolean"
                       }
                     },
+                    "additionalProperties": false,
                     "required": [
+                      "done",
                       "id",
-                      "title",
-                      "done"
-                    ],
-                    "additionalProperties": false
+                      "title"
+                    ]
                   }
                 }
               }
@@ -150,7 +151,8 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "string"
+                      "type": "string",
+                      "format": "uuid"
                     },
                     "title": {
                       "type": "string"
@@ -159,12 +161,12 @@
                       "type": "boolean"
                     }
                   },
+                  "additionalProperties": false,
                   "required": [
+                    "done",
                     "id",
-                    "title",
-                    "done"
-                  ],
-                  "additionalProperties": false
+                    "title"
+                  ]
                 }
               }
             }
@@ -210,7 +212,8 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "string"
+                      "type": "string",
+                      "format": "uuid"
                     },
                     "title": {
                       "type": "string"
@@ -219,12 +222,12 @@
                       "type": "boolean"
                     }
                   },
+                  "additionalProperties": false,
                   "required": [
+                    "done",
                     "id",
-                    "title",
-                    "done"
-                  ],
-                  "additionalProperties": false
+                    "title"
+                  ]
                 }
               }
             }
@@ -258,6 +261,9 @@
         "responses": {
           "404": {
             "description": "Not Found"
+          },
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "Validation failed",

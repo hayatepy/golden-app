@@ -2,7 +2,7 @@
 
 ## Derivation
 
-The repository was generated with public `create-hayate==0.4.0` using the
+The repository is synchronized with public `create-hayate==0.6.0` using the
 Workers production preset. Future changes should remain expressible as either
 an upstream scaffold improvement or a clearly documented reference-only
 addition. `golden-app.toml` records the generator and protocol lines.
@@ -25,6 +25,11 @@ HTTP / MCP ─────▶│ src/app.py + features│
 Runtime resources enter through the Hayate request context. `src/storage.py`
 selects D1 only when the `DB` binding is present; otherwise it uses local
 SQLite. HTTP and MCP call that same storage module with the same principal.
+
+`schemas.TodoResponse` is the source for HTTP response validation and UUID
+serialization, OpenAPI response schemas, and the MCP output schema. The
+explicit create-body JSON Schema remains only for string-length constraints
+that plain standard-library types do not express.
 
 ## Identity
 

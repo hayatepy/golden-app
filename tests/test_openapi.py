@@ -16,6 +16,17 @@ async def test_openapi_and_scalar_come_from_the_registered_routes():
     request_schema = create["requestBody"]["content"]["application/json"]["schema"]
     assert request_schema["required"] == ["title"]
     assert request_schema["properties"]["title"]["maxLength"] == 200
+    create_response = create["responses"]["201"]["content"]["application/json"]["schema"]
+    assert create_response["properties"]["id"] == {"type": "string", "format": "uuid"}
+    assert set(create_response["required"]) == {"id", "title", "done"}
+    list_response = document["paths"]["/todos"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert list_response["type"] == "array"
+    assert list_response["items"]["properties"]["id"] == {
+        "type": "string",
+        "format": "uuid",
+    }
     path_parameter = document["paths"]["/todos/{id}"]["get"]["parameters"][0]
     assert path_parameter["name"] == "id"
     assert path_parameter["in"] == "path"

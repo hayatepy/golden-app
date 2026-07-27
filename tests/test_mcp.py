@@ -30,6 +30,17 @@ async def test_mcp_2025_11_25_uses_request_identity_and_application_storage():
     assert initialized.status == 200
     assert (await initialized.json())["result"]["protocolVersion"] == "2025-11-25"
 
+    listed_tools = await app.request(
+        "/mcp",
+        method="POST",
+        headers={**MCP_HEADERS, "MCP-Protocol-Version": "2025-11-25"},
+        json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+    )
+    assert listed_tools.status == 200
+    tool = (await listed_tools.json())["result"]["tools"][0]
+    todo_schema = tool["outputSchema"]["properties"]["todos"]["items"]
+    assert todo_schema["properties"]["id"] == {"type": "string", "format": "uuid"}
+
     created = await app.request(
         "/todos",
         method="POST",
@@ -44,7 +55,7 @@ async def test_mcp_2025_11_25_uses_request_identity_and_application_storage():
         headers={**MCP_HEADERS, "MCP-Protocol-Version": "2025-11-25"},
         json={
             "jsonrpc": "2.0",
-            "id": 2,
+            "id": 3,
             "method": "tools/call",
             "params": {"name": "list_todos", "arguments": {}},
         },
