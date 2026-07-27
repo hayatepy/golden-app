@@ -55,7 +55,7 @@ def _load() -> dict[str, object]:
         {
             "package": name,
             "version": locked[name],
-            "source": "uv.lock",
+            "source": "golden-app.toml" if name == "create-hayate" else "uv.lock",
             "commit": None,
             "role": role,
         }
