@@ -274,6 +274,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": Record<string, never>;
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -294,6 +303,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": Record<string, never>;
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {

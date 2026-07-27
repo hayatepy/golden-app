@@ -6,7 +6,7 @@ from contracts import describe, validated
 from generated_features import register_features
 from identity import principal, subject
 from runtime import LOCAL_ENV
-from schemas import PRINCIPAL_SCHEMA, TODO_CREATE_SCHEMA, TODO_SCHEMA
+from schemas import PRINCIPAL_SCHEMA, TODO_CREATE_SCHEMA, TODO_ID_SCHEMA, TODO_SCHEMA
 from storage import create_todo, delete_todo, get_todo, list_todos
 
 app = Hayate(env=LOCAL_ENV)
@@ -78,7 +78,7 @@ async def todos_create(c: Context):
     return c.json(todo, status=201)
 
 
-@app.get("/todos/:id")
+@app.get("/todos/:id", validated("param", TODO_ID_SCHEMA))
 @describe(
     summary="Get a todo",
     response=TODO_SCHEMA,
@@ -86,16 +86,16 @@ async def todos_create(c: Context):
     operation_id="getTodo",
 )
 async def todos_show(c: Context):
-    todo = await get_todo(c, subject(c), c.req.param("id"))
+    todo = await get_todo(c, subject(c), c.req.valid("param")["id"])
     if todo is None:
         raise HTTPException(404, title="Todo not found")
     return c.json(todo)
 
 
-@app.delete("/todos/:id")
+@app.delete("/todos/:id", validated("param", TODO_ID_SCHEMA))
 @describe(summary="Delete a todo", status=204, responses={404: None}, operation_id="deleteTodo")
 async def todos_delete(c: Context):
-    if not await delete_todo(c, subject(c), c.req.param("id")):
+    if not await delete_todo(c, subject(c), c.req.valid("param")["id"]):
         raise HTTPException(404, title="Todo not found")
     return c.body(None, status=204)
 

@@ -38,7 +38,8 @@ bash scripts/check_asgi.sh
 Run the complete local workerd path with Node.js 24:
 
 ```sh
-bash scripts/check_workerd.sh
+bash scripts/check_workerd.sh class
+bash scripts/check_workerd.sh global
 ```
 
 Both paths create a TODO through authenticated HTTP and read the same
