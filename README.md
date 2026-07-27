@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.4.0` and contains one application core that runs unchanged
+`create-hayate==0.6.0` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP
@@ -50,7 +50,7 @@ identity-scoped data through an MCP 2025-11-25 `tools/call`.
 | Boundary | Verified behavior |
 |---|---|
 | Application | One `src/app.py`, WHATWG Request/Response, identity-scoped CRUD |
-| API contract | OpenAPI 3.1.1, hardened Scalar, pinned TypeScript generation |
+| API contract | Typed UUID validation, OpenAPI 3.1.1, hardened Scalar, pinned TypeScript generation |
 | Agent protocol | MCP 2025-11-25 initialize and structured tool result |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |

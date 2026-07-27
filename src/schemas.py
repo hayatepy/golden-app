@@ -1,15 +1,18 @@
-"""JSON Schema contracts shared by HTTP, OpenAPI, and MCP."""
+"""Typed contracts shared by HTTP, OpenAPI, and MCP."""
 
-TODO_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "id": {"type": "string"},
-        "title": {"type": "string"},
-        "done": {"type": "boolean"},
-    },
-    "required": ["id", "title", "done"],
-    "additionalProperties": False,
-}
+from typing import TypedDict
+from uuid import UUID
+
+from hayate_openapi import StdlibProvider
+
+
+class TodoResponse(TypedDict):
+    id: UUID
+    title: str
+    done: bool
+
+
+TODO_SCHEMA, _TODO_DEFINITIONS = StdlibProvider().schema(TodoResponse)
 
 TODO_CREATE_SCHEMA = {
     "type": "object",
@@ -25,13 +28,6 @@ TODO_CREATE_SCHEMA = {
     "additionalProperties": False,
 }
 
-TODO_ID_SCHEMA = {
-    "type": "object",
-    "properties": {"id": {"type": "string", "format": "uuid"}},
-    "required": ["id"],
-    "additionalProperties": False,
-}
-
 PRINCIPAL_SCHEMA = {
     "type": "object",
     "properties": {
@@ -43,4 +39,4 @@ PRINCIPAL_SCHEMA = {
     "additionalProperties": False,
 }
 
-__all__ = ["PRINCIPAL_SCHEMA", "TODO_CREATE_SCHEMA", "TODO_ID_SCHEMA", "TODO_SCHEMA"]
+__all__ = ["PRINCIPAL_SCHEMA", "TODO_CREATE_SCHEMA", "TODO_SCHEMA", "TodoResponse"]
