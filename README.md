@@ -57,6 +57,7 @@ HTTP, then read the same identity-scoped data through an MCP 2025-11-25
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |
 | Operations | Explicit TODO admin; operator allowlist, owner scope, exact Origin, cursor paging, saved views, bounded CSV, redacted localized history, safe branding |
+| Observability | Validated request IDs and compact query-free JSON access events across ASGI and Workers |
 | Production | Exact-origin CORS, security headers, 1 MiB body limit, native rate limiting |
 | Supply chain | Locked dependencies, dependency audit, workflow audit, pinned actions |
 

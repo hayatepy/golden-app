@@ -5,11 +5,13 @@ from hayate import Hayate
 from feature_access import register as register_access
 from feature_admin import register as register_admin
 from feature_mcp import register as register_mcp
+from feature_observability import register as register_observability
 from feature_openapi import register as register_openapi
 from feature_production import register as register_production
 
 
 def register_features(app: Hayate) -> None:
+    register_observability(app)
     register_access(app)
     register_production(app)
     register_admin(app)

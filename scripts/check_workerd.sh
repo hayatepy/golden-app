@@ -138,11 +138,17 @@ fi
 identity="$(
   curl --fail --silent --show-error --max-time 10 \
     "${auth[@]}" \
-    "http://127.0.0.1:${port}/whoami"
+    -H "x-request-id: workerd-golden-smoke" \
+    "http://127.0.0.1:${port}/whoami?access_token=must-not-be-logged"
 )"
 uv run python -c \
   'import json,sys; assert json.loads(sys.argv[1])["subject"] == "workerd@example.com"' \
   "${identity}"
+request_log_line="$(grep -F '"request_id":"workerd-golden-smoke"' "${log_file}" | tail -1)"
+if [[ -z "${request_log_line}" || "${request_log_line}" == *"must-not-be-logged"* ]]; then
+  echo "workerd request log is missing correlation or exposed the query string" >&2
+  exit 1
+fi
 
 openapi="$(
   curl --fail --silent --show-error --max-time 10 \
