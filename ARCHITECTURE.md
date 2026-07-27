@@ -51,6 +51,18 @@ CORS policy. API data, schema/docs, MCP, and admin require identity. Admin
 adds a second operator-email decision after Cloudflare Access and checks the
 exact Origin of every mutation.
 
+## Observability
+
+Request correlation is the outermost middleware boundary, before Cloudflare
+Access and every application feature. A conservative incoming
+`X-Request-ID` is reused; any missing, oversized, or unsafe value is replaced.
+The same value is returned on normal, not-found, and handled-error responses.
+
+Access events are compact JSON with only `event`, `method`, `path`, `status`,
+`duration_ms`, and `request_id`. The path excludes its query string, and the
+logger never records headers or bodies. This keeps credentials, Access JWTs,
+form values, and uploaded content outside the default log contract.
+
 ## Workers entrypoint
 
 The default class entrypoint preserves the full Workers contract, including

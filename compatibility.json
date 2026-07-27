@@ -1,6 +1,6 @@
 {
   "generated_by": "create-hayate 0.10.0",
-  "lock_sha256": "fab4d239dc9ffeed60c06a04adf8449e9542d0ec2ee820ca94a08b8d851466d9",
+  "lock_sha256": "35dc35b69f8de4f24b6242b7a658e3d2b2f114f460d750187c4348b3e5d57067",
   "mcp_revision": "2025-11-25",
   "node": "24",
   "packages": [
@@ -16,7 +16,7 @@
       "package": "hayate",
       "role": "Application core and runtime adapters",
       "source": "uv.lock",
-      "version": "0.13.0"
+      "version": "0.15.1"
     },
     {
       "commit": null,
