@@ -1,6 +1,6 @@
 {
   "generated_by": "create-hayate 0.7.1",
-  "lock_sha256": "532b2c50ba1aec63273226890619640b8ccaf8ea4b3d61ddf35326cbe8d3d137",
+  "lock_sha256": "966a3bce976c5996434ea1094c7f278c34c7d8a75ea3c6830c66ea994e0b41b3",
   "mcp_revision": "2025-11-25",
   "node": "24",
   "packages": [
@@ -12,12 +12,12 @@
     {
       "package": "hayate",
       "role": "Application core and runtime adapters",
-      "version": "0.12.1"
+      "version": "0.13.0"
     },
     {
       "package": "hayate-openapi",
       "role": "OpenAPI 3.1 and Scalar",
-      "version": "0.6.0"
+      "version": "0.7.0"
     },
     {
       "package": "hayate-mcp",

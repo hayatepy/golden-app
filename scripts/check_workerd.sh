@@ -147,6 +147,17 @@ uv run python -c \
   'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; limit=value["paths"]["/todos"]["get"]["parameters"][0]; assert limit == {"name":"limit","in":"query","required":False,"schema":{"type":"integer","minimum":1,"maximum":100,"default":25}}; parameter=value["paths"]["/todos/{id}"]["get"]["parameters"][0]; assert parameter == {"name":"id","in":"path","required":True,"schema":{"type":"string","format":"uuid"}}; create=value["paths"]["/todos"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]; assert create["properties"]["id"] == {"type":"string","format":"uuid"}; listing=value["paths"]["/todos"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]; assert listing["type"] == "array"; assert listing["items"]["properties"]["id"] == {"type":"string","format":"uuid"}' \
   "${openapi}"
 
+uploaded="$(
+  printf 'portable typed upload' |
+    curl --fail --silent --show-error --max-time 10 \
+      -X POST "http://127.0.0.1:${port}/uploads" \
+      "${auth[@]}" \
+      -F 'file=@-;filename=golden.txt;type=text/plain'
+)"
+uv run python -c \
+  'import json,sys; value=json.loads(sys.argv[1]); assert value == {"name":"golden.txt","type":"text/plain","size":21,"sha256":"f173d53139adf5d1395cc0c4e3ff2334547b1482736b056c157b52ae951ad267"}' \
+  "${uploaded}"
+
 initialized="$(
   curl --fail --silent --show-error --max-time 10 \
     -X POST "http://127.0.0.1:${port}/mcp" \

@@ -12,6 +12,13 @@ class TodoResponse(TypedDict):
     done: bool
 
 
+class UploadResponse(TypedDict):
+    name: str
+    type: str
+    size: int
+    sha256: str
+
+
 TODO_SCHEMA, _TODO_DEFINITIONS = StdlibProvider().schema(TodoResponse)
 
 TODO_CREATE_SCHEMA = {
@@ -39,4 +46,10 @@ PRINCIPAL_SCHEMA = {
     "additionalProperties": False,
 }
 
-__all__ = ["PRINCIPAL_SCHEMA", "TODO_CREATE_SCHEMA", "TODO_SCHEMA", "TodoResponse"]
+__all__ = [
+    "PRINCIPAL_SCHEMA",
+    "TODO_CREATE_SCHEMA",
+    "TODO_SCHEMA",
+    "TodoResponse",
+    "UploadResponse",
+]

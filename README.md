@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.7.0` and contains one application core that runs unchanged
+`create-hayate==0.7.1` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP
@@ -26,8 +26,9 @@ uv run python scripts/check_sql_contracts.py
 ```
 
 Every executable command block in this README runs in CI. The direct test
-suite covers identity-scoped CRUD, OpenAPI, MCP, production middleware, SQL
-contracts, and restart-safe local database bootstrap.
+suite covers identity-scoped CRUD, bounded typed multipart uploads, OpenAPI,
+MCP, production middleware, SQL contracts, and restart-safe local database
+bootstrap.
 
 Run the complete ASGI path:
 
@@ -42,15 +43,16 @@ bash scripts/check_workerd.sh class
 bash scripts/check_workerd.sh global
 ```
 
-Both paths create a TODO through authenticated HTTP and read the same
-identity-scoped data through an MCP 2025-11-25 `tools/call`.
+Both paths create a TODO and digest a bounded upload through authenticated
+HTTP, then read the same identity-scoped data through an MCP 2025-11-25
+`tools/call`.
 
 ## What is integrated
 
 | Boundary | Verified behavior |
 |---|---|
 | Application | One `src/app.py`, WHATWG Request/Response, identity-scoped CRUD |
-| API contract | Typed UUID validation, OpenAPI 3.1.1, hardened Scalar, pinned TypeScript generation |
+| API contract | Typed UUID and binary-file validation, bounded multipart parsing, OpenAPI 3.1.1, hardened Scalar, pinned TypeScript generation |
 | Agent protocol | MCP 2025-11-25 initialize and structured tool result |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |
@@ -87,6 +89,7 @@ strictly HTTP.
 - `GET /canonicalize` — a WHATWG URL/IDNA contract.
 - `GET /whoami` — the current request principal.
 - `GET|POST /todos`, `GET|DELETE /todos/:id` — identity-scoped data.
+- `POST /uploads` — bounded multipart file streaming with a typed digest response.
 - `GET /openapi.json`, `GET /docs` — authenticated schema and docs.
 - `POST /mcp` — MCP Streamable HTTP.
 
