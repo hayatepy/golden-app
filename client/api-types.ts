@@ -172,6 +172,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/{resource}/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_admin_resource_export_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/{resource}/relationship/{field}/choices": {
         parameters: {
             query?: never;
@@ -648,6 +664,26 @@ export interface operations {
         };
     };
     post_admin_resource_bulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resource: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_admin_resource_export_csv: {
         parameters: {
             query?: never;
             header?: never;
