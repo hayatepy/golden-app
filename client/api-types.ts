@@ -190,7 +190,9 @@ export interface operations {
     };
     listTodos: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -209,6 +211,15 @@ export interface operations {
                         title: string;
                         done: boolean;
                     }[];
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": Record<string, never>;
                 };
             };
         };
