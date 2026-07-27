@@ -35,6 +35,9 @@ async def test_todo_crud_is_scoped_to_the_request_identity():
     )
     assert rejected.status == 400
 
+    invalid_path = await app.request("/todos/not-a-uuid", headers=AUTH_HEADERS)
+    assert invalid_path.status == 400
+
     listed = await app.request("/todos", headers=AUTH_HEADERS)
     assert listed.status == 200
     assert todo in await listed.json()

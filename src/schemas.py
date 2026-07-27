@@ -25,6 +25,13 @@ TODO_CREATE_SCHEMA = {
     "additionalProperties": False,
 }
 
+TODO_ID_SCHEMA = {
+    "type": "object",
+    "properties": {"id": {"type": "string", "format": "uuid"}},
+    "required": ["id"],
+    "additionalProperties": False,
+}
+
 PRINCIPAL_SCHEMA = {
     "type": "object",
     "properties": {
@@ -36,4 +43,4 @@ PRINCIPAL_SCHEMA = {
     "additionalProperties": False,
 }
 
-__all__ = ["PRINCIPAL_SCHEMA", "TODO_CREATE_SCHEMA", "TODO_SCHEMA"]
+__all__ = ["PRINCIPAL_SCHEMA", "TODO_CREATE_SCHEMA", "TODO_ID_SCHEMA", "TODO_SCHEMA"]

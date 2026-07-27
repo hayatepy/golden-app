@@ -16,6 +16,11 @@ async def test_openapi_and_scalar_come_from_the_registered_routes():
     request_schema = create["requestBody"]["content"]["application/json"]["schema"]
     assert request_schema["required"] == ["title"]
     assert request_schema["properties"]["title"]["maxLength"] == 200
+    path_parameter = document["paths"]["/todos/{id}"]["get"]["parameters"][0]
+    assert path_parameter["name"] == "id"
+    assert path_parameter["in"] == "path"
+    assert path_parameter["required"] is True
+    assert path_parameter["schema"] == {"type": "string", "format": "uuid"}
     assert document["security"] == [{"CloudflareAccess": []}]
     assert document["components"]["securitySchemes"]["CloudflareAccess"] == {
         "type": "apiKey",

@@ -1,23 +1,23 @@
 {
-  "generated_by": "create-hayate 0.4.3",
-  "lock_sha256": "9fa53adb31a6ec33b480f2cc41a9b0237f24661ac94bf3545cf8cb5aac840c54",
+  "generated_by": "create-hayate 0.5.1",
+  "lock_sha256": "5b4b8ed8c50617cc9e47a5e0cc9dde11dac880fe0bd30928346eda8f7a7afb71",
   "mcp_revision": "2025-11-25",
   "node": "24",
   "packages": [
     {
       "package": "create-hayate",
       "role": "Scaffold source",
-      "version": "0.4.3"
+      "version": "0.5.1"
     },
     {
       "package": "hayate",
       "role": "Application core and runtime adapters",
-      "version": "0.11.2"
+      "version": "0.12.1"
     },
     {
       "package": "hayate-openapi",
       "role": "OpenAPI 3.1 and Scalar",
-      "version": "0.3.1"
+      "version": "0.4.2"
     },
     {
       "package": "hayate-mcp",
@@ -48,6 +48,12 @@
     "flags": [
       "python_workers"
     ],
-    "global_entrypoint": "HTTP-only compatibility mode"
+    "global_entrypoint": "HTTP-only compatibility mode",
+    "global_flags": [
+      "python_workers",
+      "disable_python_no_global_handlers"
+    ],
+    "global_main": "src/entry_global.py",
+    "main": "src/entry.py"
   }
 }

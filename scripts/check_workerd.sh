@@ -3,11 +3,29 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 test_dir="$(mktemp -d)"
-log_file="${test_dir}.workerd.log"
-dry_run_log="${test_dir}.dry-run.log"
-bundle_dir="${test_dir}/bundle"
+entrypoint="${1:-class}"
+log_file="${test_dir}.${entrypoint}.workerd.log"
+dry_run_log="${test_dir}.${entrypoint}.dry-run.log"
+bundle_dir="${test_dir}/${entrypoint}-bundle"
 port="${WORKERD_PORT:-8796}"
 server_pid=""
+
+if [[ "${entrypoint}" == "global" ]]; then
+  config_file="wrangler.global.toml"
+elif [[ "${entrypoint}" != "class" ]]; then
+  echo "expected class or global entrypoint; got ${entrypoint}" >&2
+  exit 2
+else
+  config_file=""
+fi
+
+run_workers() {
+  if [[ -n "${config_file}" ]]; then
+    uv run python manage_workers.py "$@" --config "${config_file}"
+  else
+    uv run python manage_workers.py "$@"
+  fi
+}
 
 terminate_tree() {
   local parent_pid="$1"
@@ -41,17 +59,21 @@ if [[ "$(node --version)" != v24.* ]]; then
   echo "the golden workerd flow requires Node.js 24" >&2
   exit 2
 fi
-if ! grep -q 'Default = to_workers(app)' "${root}/src/entry.py"; then
-  echo "the golden reference must retain the feature-complete class entrypoint" >&2
+if [[ "${entrypoint}" == "class" ]]; then
+  if ! grep -q 'Default = to_workers(app)' "${root}/src/entry.py"; then
+    echo "the golden reference must retain the feature-complete class entrypoint" >&2
+    exit 1
+  fi
+elif ! grep -q 'on_fetch = to_workers_global(app)' "${root}/src/entry_global.py"; then
+  echo "the global golden reference must use Hayate's explicit compatibility entrypoint" >&2
   exit 1
 fi
 
 (
   cd "${root}"
-  uv run python manage_workers.py d1 migrations apply DB --local
-  uv run python manage_workers.py deploy --dry-run --outdir "${bundle_dir}" \
-    >"${dry_run_log}" 2>&1
-  uv run python manage_workers.py dev --port "${port}"
+  run_workers d1 migrations apply DB --local
+  run_workers deploy --dry-run --outdir "${bundle_dir}" >"${dry_run_log}" 2>&1
+  run_workers dev --port "${port}"
 ) >"${log_file}" 2>&1 &
 server_pid=$!
 
@@ -88,6 +110,15 @@ created="$(
     --data '{"title":"D1 golden todo"}'
 )"
 todo_id="$(uv run python -c 'import json,sys; value=json.loads(sys.argv[1]); assert value["title"] == "D1 golden todo"; print(value["id"])' "${created}")"
+invalid_status="$(
+  curl --silent --show-error --output /dev/null --write-out "%{http_code}" --max-time 10 \
+    "${auth[@]}" \
+    "http://127.0.0.1:${port}/todos/not-a-uuid"
+)"
+if [[ "${invalid_status}" != "400" ]]; then
+  echo "expected malformed TODO UUID to return 400; got ${invalid_status}" >&2
+  exit 1
+fi
 
 identity="$(
   curl --fail --silent --show-error --max-time 10 \
@@ -104,7 +135,7 @@ openapi="$(
     "http://127.0.0.1:${port}/openapi.json"
 )"
 uv run python -c \
-  'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; assert "/todos" in value["paths"]' \
+  'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; parameter=value["paths"]["/todos/{id}"]["get"]["parameters"][0]; assert parameter == {"name":"id","in":"path","required":True,"schema":{"type":"string","format":"uuid"}}' \
   "${openapi}"
 
 initialized="$(
@@ -133,4 +164,4 @@ uv run python -c \
   "${called}" \
   "${todo_id}"
 
-echo "workerd golden flow passed: ${upload} todo_id=${todo_id}"
+echo "workerd ${entrypoint} golden flow passed: ${upload} todo_id=${todo_id}"

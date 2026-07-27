@@ -50,6 +50,15 @@ created="$(
     --data '{"title":"ASGI golden todo"}'
 )"
 todo_id="$(uv run python -c 'import json,sys; value=json.loads(sys.argv[1]); assert value["title"] == "ASGI golden todo"; print(value["id"])' "${created}")"
+invalid_status="$(
+  curl --silent --show-error --output /dev/null --write-out "%{http_code}" --max-time 10 \
+    "${auth[@]}" \
+    "http://127.0.0.1:${port}/todos/not-a-uuid"
+)"
+if [[ "${invalid_status}" != "400" ]]; then
+  echo "expected malformed TODO UUID to return 400; got ${invalid_status}" >&2
+  exit 1
+fi
 
 identity="$(
   curl --fail --silent --show-error --max-time 10 \
@@ -66,7 +75,7 @@ openapi="$(
     "http://127.0.0.1:${port}/openapi.json"
 )"
 uv run python -c \
-  'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; assert "/todos" in value["paths"]' \
+  'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; parameter=value["paths"]["/todos/{id}"]["get"]["parameters"][0]; assert parameter == {"name":"id","in":"path","required":True,"schema":{"type":"string","format":"uuid"}}' \
   "${openapi}"
 curl --fail --silent --show-error --max-time 10 \
   "${auth[@]}" \
