@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import csv
+import hashlib
+import io
+import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from types import MappingProxyType
 from urllib.parse import quote, urlsplit
@@ -19,11 +25,14 @@ from hayate import (
 )
 from hayate_htmx import HtmxRequest, with_htmx
 
+from .branding import AdminBranding
 from .contracts import (
     Actor,
     AdminAction,
     AdminAsset,
     AdminBulkAction,
+    AdminCsvExport,
+    AdminCursorError,
     AdminInline,
     AdminRelationship,
     AdminResource,
@@ -37,6 +46,8 @@ from .contracts import (
     AuditSinkFactory,
     Authorizer,
     BulkActionResult,
+    CursorPage,
+    ExportQuery,
     InlineCollection,
     InlineMutation,
     InlineMutationResult,
@@ -48,10 +59,105 @@ from .contracts import (
     RelationshipPage,
     RelationshipQuery,
 )
+from .messages import ENGLISH_MESSAGES, AdminMessages
 from .render import AdminRenderer
 
 _FORM_BODY_LIMIT = 64 * 1024
 _PREFIX = re.compile(r"^/[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)*$")
+_CURSOR = re.compile(r"^[A-Za-z0-9_-]{1,4096}$")
+_REPOSITORY_CURSOR = re.compile(r"^[A-Za-z0-9._~-]{1,1536}$")
+
+
+def _cursor_query_fingerprint(resource: AdminResource, query: ListQuery) -> str:
+    canonical = json.dumps(
+        {
+            "d": query.descending,
+            "f": dict(sorted(query.filters.items())),
+            "o": query.order_by,
+            "q": query.search,
+            "r": resource.slug,
+            "s": query.saved_view,
+            "v": 1,
+        },
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("ascii")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _cursor_payload(
+    resource: AdminResource,
+    query: ListQuery,
+    repository_cursor: str,
+) -> dict[str, object]:
+    return {
+        "c": repository_cursor,
+        "h": _cursor_query_fingerprint(resource, query),
+        "r": resource.slug,
+        "v": 1,
+    }
+
+
+def _encode_cursor(
+    resource: AdminResource,
+    query: ListQuery,
+    repository_cursor: str,
+) -> str:
+    payload = json.dumps(
+        _cursor_payload(resource, query, repository_cursor),
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("ascii")
+    encoded = base64.urlsafe_b64encode(payload).rstrip(b"=").decode("ascii")
+    if len(encoded) > 4096:
+        raise ValueError("admin cursor envelope exceeds 4096 characters")
+    return encoded
+
+
+def _decode_cursor(
+    raw: str,
+    resource: AdminResource,
+    query: ListQuery,
+) -> str:
+    if not _CURSOR.fullmatch(raw):
+        raise ValueError("cursor must be an opaque URL-safe token")
+    padding = b"=" * (-len(raw) % 4)
+    try:
+        decoded = base64.b64decode(
+            raw.encode("ascii") + padding,
+            altchars=b"-_",
+            validate=True,
+        )
+        payload = json.loads(decoded)
+    except (UnicodeEncodeError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError) as error:
+        raise ValueError("cursor is malformed") from error
+    if not isinstance(payload, dict) or set(payload) != {"c", "h", "r", "v"}:
+        raise ValueError("cursor has an unsupported shape")
+    expected = _cursor_payload(resource, query, "")
+    if any(payload[key] != expected[key] for key in expected if key != "c"):
+        raise ValueError("cursor does not belong to this resource and list query")
+    repository_cursor = payload["c"]
+    if not isinstance(repository_cursor, str) or not _REPOSITORY_CURSOR.fullmatch(
+        repository_cursor
+    ):
+        raise ValueError("cursor contains an invalid repository continuation")
+    return repository_cursor
+
+
+def _csv_cell(value: object | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    cell = str(value)
+    candidate = cell.lstrip()
+    if candidate.startswith(("=", "+", "-", "@")) or cell.startswith(("\t", "\r", "\n")):
+        return f"'{cell}"
+    return cell
 
 
 def _normalize_origin(origin: str) -> str:
@@ -89,6 +195,7 @@ class AdminSite:
         "_authorize",
         "_history",
         "_history_factory",
+        "_messages",
         "_registered",
         "_renderer",
         "_resources",
@@ -109,6 +216,8 @@ class AdminSite:
         history_factory: AuditHistoryReaderFactory | None = None,
         prefix: str = "/admin",
         htmx_asset: AdminAsset | None = None,
+        messages: AdminMessages = ENGLISH_MESSAGES,
+        branding: AdminBranding | None = None,
     ) -> None:
         if not isinstance(title, str) or not title or len(title) > 120:
             raise ValueError("admin title must be 1-120 characters")
@@ -130,6 +239,10 @@ class AdminSite:
             raise ValueError("admin history_factory must be callable")
         if htmx_asset is not None and not isinstance(htmx_asset, AdminAsset):
             raise ValueError("admin htmx_asset must be an AdminAsset")
+        if not isinstance(messages, AdminMessages):
+            raise ValueError("admin messages must be an AdminMessages")
+        if branding is not None and not isinstance(branding, AdminBranding):
+            raise ValueError("admin branding must be an AdminBranding")
         self.title = title
         self.prefix = _normalize_prefix(prefix)
         self._trusted_origins = frozenset(_normalize_origin(origin) for origin in allowed_origins)
@@ -138,9 +251,16 @@ class AdminSite:
         self._audit_factory = audit_factory
         self._history = history
         self._history_factory = history_factory
+        self._messages = messages
         self._resources: dict[str, AdminResource] = {}
         self._registered = False
-        self._renderer = AdminRenderer(prefix=self.prefix, title=title, asset=htmx_asset)
+        self._renderer = AdminRenderer(
+            prefix=self.prefix,
+            title=title,
+            asset=htmx_asset,
+            messages=messages,
+            branding=branding or AdminBranding(),
+        )
 
     @property
     def resources(self) -> tuple[AdminResource, ...]:
@@ -190,6 +310,10 @@ class AdminSite:
         @app.post(f"{prefix}/:resource/bulk")
         async def admin_bulk(context: Context) -> Response:
             return await self._bulk(context)
+
+        @app.get(f"{prefix}/:resource/export.csv")
+        async def admin_export(context: Context) -> Response:
+            return await self._export_csv(context)
 
         @app.get(f"{prefix}/:resource/relationship/:field/choices")
         async def admin_relationship_choices(context: Context) -> Response:
@@ -298,13 +422,11 @@ class AdminSite:
     ) -> Actor | None:
         return await self._authorize(context, action, resource, object_id)
 
-    @staticmethod
-    def _forbidden() -> Response:
-        return problem(403, title="Admin operation forbidden")
+    def _forbidden(self) -> Response:
+        return problem(403, title=self._messages.text("problem.forbidden"))
 
-    @staticmethod
-    def _not_found() -> Response:
-        return problem(404, title="Admin record not found")
+    def _not_found(self) -> Response:
+        return problem(404, title=self._messages.text("problem.not_found"))
 
     async def _index(self, context: Context) -> Response:
         actor = await self._allowed(context, "site:view", None)
@@ -332,13 +454,28 @@ class AdminSite:
         try:
             query = self._list_query(context, resource)
         except ValueError as error:
-            return problem(400, title="Invalid admin list query", detail=str(error))
-        page = await resource.repository_for(context).list(query)
-        self._validate_page(resource, query, page)
+            return problem(
+                400,
+                title=self._messages.text("problem.list_query"),
+                detail=str(error),
+            )
+        try:
+            repository_page = await resource.repository_for(context).list(query)
+        except AdminCursorError:
+            return problem(400, title=self._messages.text("problem.cursor"))
+        self._validate_page(resource, query, repository_page)
         visible_records = []
-        for record in page.items:
+        for record in repository_page.items:
             visible_records.append(await self._authorized_record(context, resource, record))
-        page = Page(tuple(visible_records), page.total)
+        if isinstance(repository_page, CursorPage):
+            next_cursor = (
+                None
+                if repository_page.next_cursor is None
+                else _encode_cursor(resource, query, repository_page.next_cursor)
+            )
+            page: Page | CursorPage = CursorPage(tuple(visible_records), next_cursor)
+        else:
+            page = Page(tuple(visible_records), repository_page.total)
         bulk_actions: tuple[AdminBulkAction, ...] = ()
         if resource.bulk_actions and (
             await self._allowed(context, "resource:bulk", resource) is not None
@@ -355,6 +492,8 @@ class AdminSite:
             can_add=await self._allowed(context, "resource:add", resource) is not None,
             can_change=await self._allowed(context, "resource:change", resource) is not None,
             can_delete=await self._allowed(context, "resource:delete", resource) is not None,
+            can_export=resource.csv_export is not None
+            and await self._allowed(context, "resource:export", resource) is not None,
             bulk_actions=bulk_actions,
         )
         return self._renderer.response(
@@ -365,46 +504,106 @@ class AdminSite:
         )
 
     @staticmethod
-    def _list_query(context: Context, resource: AdminResource) -> ListQuery:
-        search = context.req.query("q")
-        if search is not None:
-            search = search.strip() or None
+    def _list_query(
+        context: Context,
+        resource: AdminResource,
+        *,
+        include_pagination: bool = True,
+    ) -> ListQuery:
+        requested_view = context.req.query("view")
+        saved_view = None if requested_view is None else resource.saved_view_map.get(requested_view)
+        if requested_view is not None and saved_view is None:
+            raise ValueError("view must name a registered saved view")
+
+        raw_search = context.req.query("q")
+        if raw_search is None:
+            search = None if saved_view is None else saved_view.search
+        else:
+            search = raw_search.strip() or None
         if search is not None and len(search) > 200:
             raise ValueError("search must not exceed 200 characters")
 
-        raw_page = context.req.query("page") or "1"
-        try:
-            page_number = int(raw_page)
-        except ValueError as error:
-            raise ValueError("page must be a positive integer") from error
-        if not 1 <= page_number <= 1_000_000:
-            raise ValueError("page must be in 1-1000000")
-
         sortable = {field.name for field in resource.fields if field.sortable}
         requested_sort = context.req.query("sort")
-        order_by = requested_sort if requested_sort in sortable else None
-        descending = order_by is not None and context.req.query("direction") == "desc"
+        if requested_sort is None:
+            order_by = None if saved_view is None else saved_view.order_by
+            descending = False if saved_view is None else saved_view.descending
+        else:
+            order_by = requested_sort if requested_sort in sortable else None
+            descending = order_by is not None and context.req.query("direction") == "desc"
 
         filters = {}
         for admin_field in resource.fields:
             if not admin_field.filterable:
                 continue
             value = context.req.query(f"filter_{admin_field.name}")
+            if value is None and saved_view is not None:
+                value = saved_view.filters.get(admin_field.name)
             allowed = {choice for choice, _ in admin_field.choices}
             if value in allowed:
                 filters[admin_field.name] = value
 
-        return ListQuery(
+        query = ListQuery(
             search=search,
             filters=filters,
             order_by=order_by,
             descending=descending,
-            offset=(page_number - 1) * resource.page_size,
+            offset=0,
             limit=resource.page_size,
+            saved_view=requested_view,
+        )
+        if not include_pagination:
+            if context.req.query("page") is not None or context.req.query("cursor") is not None:
+                raise ValueError("export queries do not accept page or cursor")
+            return query
+
+        if resource.pagination == "offset":
+            if context.req.query("cursor") is not None:
+                raise ValueError("this resource does not support cursor pagination")
+            raw_page = context.req.query("page") or "1"
+            try:
+                page_number = int(raw_page)
+            except ValueError as error:
+                raise ValueError("page must be a positive integer") from error
+            if not 1 <= page_number <= 1_000_000:
+                raise ValueError("page must be in 1-1000000")
+            return ListQuery(
+                search=query.search,
+                filters=query.filters,
+                order_by=query.order_by,
+                descending=query.descending,
+                offset=(page_number - 1) * resource.page_size,
+                limit=resource.page_size,
+                saved_view=query.saved_view,
+            )
+
+        if context.req.query("page") is not None:
+            raise ValueError("cursor resources do not accept page offsets")
+        raw_cursor = context.req.query("cursor")
+        repository_cursor = (
+            None if raw_cursor is None else _decode_cursor(raw_cursor, resource, query)
+        )
+        return ListQuery(
+            search=query.search,
+            filters=query.filters,
+            order_by=query.order_by,
+            descending=query.descending,
+            offset=0,
+            limit=resource.page_size,
+            cursor=repository_cursor,
+            saved_view=query.saved_view,
         )
 
     @staticmethod
-    def _validate_page(resource: AdminResource, query: ListQuery, page: Page) -> None:
+    def _validate_page(
+        resource: AdminResource,
+        query: ListQuery,
+        page: Page | CursorPage,
+    ) -> None:
+        if resource.pagination == "offset" and not isinstance(page, Page):
+            raise TypeError(f"{resource.slug}: offset repository must return Page")
+        if resource.pagination == "cursor" and not isinstance(page, CursorPage):
+            raise TypeError(f"{resource.slug}: cursor repository must return CursorPage")
         if len(page.items) > query.limit:
             raise ValueError(f"{resource.slug}: repository returned more than the requested limit")
         for record in page.items:
@@ -492,9 +691,9 @@ class AdminSite:
         try:
             page_number = int(raw_page)
         except ValueError:
-            return problem(400, title="Invalid admin history page")
+            return problem(400, title=self._messages.text("problem.history_page"))
         if not 1 <= page_number <= 1_000_000:
-            return problem(400, title="Invalid admin history page")
+            return problem(400, title=self._messages.text("problem.history_page"))
         limit = 50
         reader = self._history
         if reader is None:
@@ -521,7 +720,7 @@ class AdminSite:
         )
         return self._renderer.response(
             context,
-            title=f"{resource.singular_label} history",
+            title=self._messages.text("history.heading", object_id=object_id),
             actor=actor,
             content=content,
         )
@@ -539,7 +738,7 @@ class AdminSite:
             or len(source_object_id) > 255
             or any(ord(character) < 0x20 for character in source_object_id)
         ):
-            return problem(400, title="Invalid relationship source object")
+            return problem(400, title=self._messages.text("problem.relationship_source"))
         source_action: AdminAction = (
             "resource:add" if source_object_id is None else "resource:change"
         )
@@ -556,14 +755,14 @@ class AdminSite:
         if search is not None:
             search = search.strip() or None
         if search is not None and len(search) > 200:
-            return problem(400, title="Invalid relationship search")
+            return problem(400, title=self._messages.text("problem.relationship_search"))
         raw_page = context.req.query("page") or "1"
         try:
             page_number = int(raw_page)
         except ValueError:
-            return problem(400, title="Invalid relationship page")
+            return problem(400, title=self._messages.text("problem.relationship_page"))
         if not 1 <= page_number <= 1_000_000:
-            return problem(400, title="Invalid relationship page")
+            return problem(400, title=self._messages.text("problem.relationship_page"))
         query = RelationshipQuery(
             search=search,
             offset=(page_number - 1) * relationship.max_choices,
@@ -588,7 +787,10 @@ class AdminSite:
         )
         return self._renderer.response(
             context,
-            title=f"Choose {resource.field_map[relationship.field].label}",
+            title=self._messages.text(
+                "relationship.heading",
+                field=resource.field_map[relationship.field].label,
+            ),
             actor=actor,
             content=content,
         )
@@ -711,19 +913,23 @@ class AdminSite:
         if relationship_state is None:
             return self._forbidden()
         values, relationship_choices = relationship_state
+        heading = self._messages.text(
+            "form.create_heading",
+            item=resource.singular_label,
+        )
         content = self._renderer.form(
             resource,
             action=f"{self.prefix}/{resource.slug}/create",
-            heading=f"Add {resource.singular_label}",
+            heading=heading,
             values=values,
             errors={},
-            submit_label="Create",
+            submit_label=self._messages.text("form.create"),
             relationship_choices=relationship_choices,
             source_object_id=None,
         )
         return self._renderer.response(
             context,
-            title=f"Add {resource.singular_label}",
+            title=heading,
             actor=actor,
             content=content,
         )
@@ -767,10 +973,13 @@ class AdminSite:
                 resource,
                 actor=actor,
                 action=f"{self.prefix}/{resource.slug}/create",
-                heading=f"Add {resource.singular_label}",
+                heading=self._messages.text(
+                    "form.create_heading",
+                    item=resource.singular_label,
+                ),
                 values=display_values,
                 errors=errors,
-                submit_label="Create",
+                submit_label=self._messages.text("form.create"),
                 source_object_id=None,
             )
         try:
@@ -789,10 +998,13 @@ class AdminSite:
                 resource,
                 actor=actor,
                 action=f"{self.prefix}/{resource.slug}/create",
-                heading=f"Add {resource.singular_label}",
+                heading=self._messages.text(
+                    "form.create_heading",
+                    item=resource.singular_label,
+                ),
                 values=display_values,
                 errors=self._safe_errors(resource, error.errors),
-                submit_label="Create",
+                submit_label=self._messages.text("form.create"),
                 source_object_id=None,
             )
         except Exception as error:
@@ -930,6 +1142,204 @@ class AdminSite:
             content=content,
         )
 
+    async def _export_csv(self, context: Context) -> Response:
+        resource = self._resource(context)
+        if resource is None or resource.csv_export is None:
+            return self._not_found()
+        policy = resource.csv_export
+        actor = await self._allowed(context, "resource:export", resource)
+        if actor is None:
+            await self._failure(
+                context,
+                "resource:export",
+                resource,
+                None,
+                None,
+                "AuthorizationDenied",
+                operation="csv",
+            )
+            return self._forbidden()
+        if (context.req.header("sec-fetch-site") or "").lower() == "cross-site":
+            await self._failure(
+                context,
+                "resource:export",
+                resource,
+                None,
+                actor,
+                "CrossSiteRequest",
+                operation="csv",
+            )
+            return self._forbidden()
+        try:
+            list_query = self._list_query(context, resource, include_pagination=False)
+        except ValueError as error:
+            await self._failure(
+                context,
+                "resource:export",
+                resource,
+                None,
+                actor,
+                "InvalidExportQuery",
+                operation="csv",
+            )
+            return problem(
+                400,
+                title=self._messages.text("problem.export_query"),
+                detail=str(error),
+            )
+        query = ExportQuery(
+            search=list_query.search,
+            filters=list_query.filters,
+            order_by=list_query.order_by,
+            descending=list_query.descending,
+            limit=policy.max_rows + 1,
+            saved_view=list_query.saved_view,
+        )
+        await self._event(
+            context,
+            "attempt",
+            "resource:export",
+            resource,
+            None,
+            actor,
+            operation="csv",
+        )
+        try:
+            returned = await policy.handler(
+                context,
+                resource.repository_for(context),
+                query,
+            )
+            if (
+                not isinstance(returned, Sequence)
+                or isinstance(returned, (str, bytes))
+                or any(not isinstance(record, Mapping) for record in returned)
+            ):
+                raise TypeError("admin CSV export handler returned an invalid record sequence")
+            records = tuple(returned)
+            if len(records) > policy.max_rows:
+                await self._failure(
+                    context,
+                    "resource:export",
+                    resource,
+                    None,
+                    actor,
+                    "ExportRowLimitExceeded",
+                    operation="csv",
+                )
+                return problem(
+                    413,
+                    title=self._messages.text("problem.export_rows"),
+                    detail=self._messages.text(
+                        "problem.export_rows_detail",
+                        limit=policy.max_rows,
+                    ),
+                )
+            authorized_records = []
+            for record in records:
+                self._validate_record(resource, record)
+                object_id = self._record_id(resource, record)
+                if (
+                    await self._allowed(
+                        context,
+                        "resource:export",
+                        resource,
+                        object_id,
+                    )
+                    is None
+                ):
+                    await self._failure(
+                        context,
+                        "resource:export",
+                        resource,
+                        object_id,
+                        actor,
+                        "AuthorizationDenied",
+                        operation="csv",
+                    )
+                    return self._forbidden()
+                authorized_records.append(await self._authorized_record(context, resource, record))
+            body = self._csv_bytes(resource, policy, authorized_records)
+        except OverflowError:
+            await self._failure(
+                context,
+                "resource:export",
+                resource,
+                None,
+                actor,
+                "ExportByteLimitExceeded",
+                operation="csv",
+            )
+            return problem(
+                413,
+                title=self._messages.text("problem.export_bytes"),
+                detail=self._messages.text(
+                    "problem.export_bytes_detail",
+                    limit=policy.max_bytes,
+                ),
+            )
+        except Exception as error:
+            await self._failure(
+                context,
+                "resource:export",
+                resource,
+                None,
+                actor,
+                type(error).__name__,
+                operation="csv",
+            )
+            raise
+        await self._event(
+            context,
+            "success",
+            "resource:export",
+            resource,
+            None,
+            actor,
+            operation="csv",
+        )
+        return context.body(
+            body,
+            headers={
+                "cache-control": "no-store",
+                "content-disposition": f'attachment; filename="{policy.filename}"',
+                "content-length": str(len(body)),
+                "content-security-policy": "default-src 'none'; sandbox",
+                "content-type": "text/csv; charset=utf-8",
+                "cross-origin-resource-policy": "same-origin",
+                "referrer-policy": "no-referrer",
+                "x-download-options": "noopen",
+                "x-content-type-options": "nosniff",
+            },
+        )
+
+    @staticmethod
+    def _csv_bytes(
+        resource: AdminResource,
+        policy: AdminCsvExport,
+        records: Sequence[Record],
+    ) -> bytes:
+        rows: list[bytes] = []
+        total_bytes = 0
+        fields = tuple(resource.field_map[name] for name in policy.fields)
+        values: Sequence[Sequence[object | None]] = (
+            tuple(field.label for field in fields),
+            *(tuple(record.get(field.name) for field in fields) for record in records),
+        )
+        for row in values:
+            output = io.StringIO(newline="")
+            writer = csv.writer(output, lineterminator="\r\n")
+            cells = tuple(_csv_cell(value) for value in row)
+            if any(len(cell) > policy.max_bytes for cell in cells):
+                raise OverflowError
+            writer.writerow(cells)
+            encoded = output.getvalue().encode("utf-8")
+            total_bytes += len(encoded)
+            if total_bytes > policy.max_bytes:
+                raise OverflowError
+            rows.append(encoded)
+        return b"".join(rows)
+
     async def _edit_form(self, context: Context) -> Response:
         resource = self._resource(context)
         object_id = self._object_id(context)
@@ -952,19 +1362,23 @@ class AdminSite:
             return self._forbidden()
         values, relationship_choices = relationship_state
         action = f"{self._record_location(resource, object_id)}/edit"
+        heading = self._messages.text(
+            "form.edit_heading",
+            record=record.get(resource.title_field, object_id),
+        )
         content = self._renderer.form(
             resource,
             action=action,
-            heading=f"Edit {record.get(resource.title_field, object_id)}",
+            heading=heading,
             values=values,
             errors={},
-            submit_label="Save changes",
+            submit_label=self._messages.text("form.save"),
             relationship_choices=relationship_choices,
             source_object_id=object_id,
         )
         return self._renderer.response(
             context,
-            title=f"Edit {record.get(resource.title_field, object_id)}",
+            title=heading,
             actor=actor,
             content=content,
         )
@@ -1017,10 +1431,10 @@ class AdminSite:
                 resource,
                 actor=actor,
                 action=action,
-                heading=f"Edit {object_id}",
+                heading=self._messages.text("form.edit_heading", record=object_id),
                 values=display_values,
                 errors=errors,
-                submit_label="Save changes",
+                submit_label=self._messages.text("form.save"),
                 source_object_id=object_id,
             )
         try:
@@ -1039,10 +1453,10 @@ class AdminSite:
                 resource,
                 actor=actor,
                 action=action,
-                heading=f"Edit {object_id}",
+                heading=self._messages.text("form.edit_heading", record=object_id),
                 values=display_values,
                 errors=self._safe_errors(resource, error.errors),
-                submit_label="Save changes",
+                submit_label=self._messages.text("form.save"),
                 source_object_id=object_id,
             )
         except Exception as error:
@@ -1376,7 +1790,7 @@ class AdminSite:
     ) -> tuple[InlineMutation, Mapping[str, object], Mapping[str, str]] | Response:
         content_type = (context.req.header("content-type") or "").partition(";")[0].strip().lower()
         if content_type != "application/x-www-form-urlencoded":
-            return problem(415, title="Admin forms require application/x-www-form-urlencoded")
+            return problem(415, title=self._messages.text("problem.form_content_type"))
         limits = FormDataLimits(
             max_body_bytes=_FORM_BODY_LIMIT,
             max_file_bytes=0,
@@ -1388,7 +1802,11 @@ class AdminSite:
         try:
             form = await context.req.form_data(limits)
         except (FormDataLimitError, TypeError) as form_error:
-            return problem(413, title="Admin inline form rejected", detail=str(form_error))
+            return problem(
+                413,
+                title=self._messages.text("problem.inline_form"),
+                detail=str(form_error),
+            )
 
         allowed = set(inline.fields) | {"operation", "object_id"}
         raw: dict[str, str] = {}
@@ -1396,16 +1814,16 @@ class AdminSite:
         async with form:
             for name, value in form:
                 if name not in allowed:
-                    errors["__all__"] = "The inline form contains an unexpected field."
+                    errors["__all__"] = self._messages.text("validation.inline.unexpected")
                     continue
                 if name in raw:
-                    errors[name if name in inline.fields else "__all__"] = (
-                        "Submit exactly one value for each inline field."
+                    errors[name if name in inline.fields else "__all__"] = self._messages.text(
+                        "validation.inline.duplicate"
                     )
                     continue
                 if isinstance(value, File):
-                    errors[name if name in inline.fields else "__all__"] = (
-                        "File uploads are not supported by inline fields."
+                    errors[name if name in inline.fields else "__all__"] = self._messages.text(
+                        "validation.inline.upload"
                     )
                     continue
                 raw[name] = value
@@ -1419,25 +1837,31 @@ class AdminSite:
         else:
             operation = "create"
         if raw_operation not in ("create", "update", "delete"):
-            errors["__all__"] = "Choose one inline operation."
+            errors["__all__"] = self._messages.text("validation.inline.operation")
             object_id = None
         existing = {self._record_id(target, record): record for record in collection.items}
         if operation in ("update", "delete") and object_id not in existing:
-            errors["__all__"] = "The inline record does not belong to this parent."
+            errors["__all__"] = self._messages.text("validation.inline.parent")
             if object_id is None:
                 object_id = "__missing__"
         if operation == "create" and object_id is not None:
-            errors["__all__"] = "Inline create must not include an object ID."
+            errors["__all__"] = self._messages.text("validation.inline.create_id")
             object_id = None
         if operation == "create" and collection.total >= inline.max_items:
-            errors["__all__"] = f"At most {inline.max_items} inline records are allowed."
+            errors["__all__"] = self._messages.text(
+                "validation.inline.limit",
+                limit=inline.max_items,
+            )
 
         values: dict[str, object] = {}
         display_values: dict[str, object] = dict(raw)
         if operation != "delete":
             for field_name in inline.fields:
                 admin_field = target.field_map[field_name]
-                parsed_value, parse_error = admin_field.parse(raw.get(field_name))
+                parsed_value, parse_error = admin_field.parse(
+                    raw.get(field_name),
+                    messages=self._messages,
+                )
                 if admin_field.kind == "checkbox":
                     display_values[field_name] = bool(parsed_value)
                 if parse_error is not None:
@@ -1490,8 +1914,8 @@ class AdminSite:
             status=422,
         )
 
-    @staticmethod
     def _safe_inline_errors(
+        self,
         target: AdminResource,
         inline: AdminInline,
         errors: Mapping[str, str],
@@ -1502,7 +1926,7 @@ class AdminSite:
             for name, message in errors.items()
             if message
         }
-        return safe or {"__all__": "The inline record could not be saved."}
+        return safe or {"__all__": self._messages.text("validation.inline.save")}
 
     @classmethod
     def _validate_inline_result(
@@ -1547,7 +1971,10 @@ class AdminSite:
         content = self._renderer.delete_confirmation(resource, record, action=action)
         return self._renderer.response(
             context,
-            title=f"Delete {record.get(resource.title_field, object_id)}",
+            title=self._messages.text(
+                "delete.heading",
+                record=record.get(resource.title_field, object_id),
+            ),
             actor=actor,
             content=content,
         )
@@ -1614,7 +2041,7 @@ class AdminSite:
                 None,
                 "CrossSiteRequest",
             )
-            return problem(403, title="Cross-site admin mutation rejected")
+            return problem(403, title=self._messages.text("problem.cross_site"))
         origin = context.req.header("origin")
         try:
             normalized = None if origin is None else _normalize_origin(origin)
@@ -1622,7 +2049,7 @@ class AdminSite:
             normalized = None
         if normalized not in self._trusted_origins:
             await self._failure(context, action, resource, object_id, None, "InvalidOrigin")
-            return problem(403, title="Admin mutation origin rejected")
+            return problem(403, title=self._messages.text("problem.origin"))
         return None
 
     async def _parse_form(
@@ -1633,7 +2060,7 @@ class AdminSite:
     ) -> tuple[Mapping[str, object], Mapping[str, object], Mapping[str, str]] | Response:
         content_type = (context.req.header("content-type") or "").partition(";")[0].strip().lower()
         if content_type != "application/x-www-form-urlencoded":
-            return problem(415, title="Admin forms require application/x-www-form-urlencoded")
+            return problem(415, title=self._messages.text("problem.form_content_type"))
         limits = FormDataLimits(
             max_body_bytes=_FORM_BODY_LIMIT,
             max_file_bytes=0,
@@ -1645,7 +2072,11 @@ class AdminSite:
         try:
             form = await context.req.form_data(limits)
         except (FormDataLimitError, TypeError) as form_error:
-            return problem(413, title="Admin form rejected", detail=str(form_error))
+            return problem(
+                413,
+                title=self._messages.text("problem.form"),
+                detail=str(form_error),
+            )
 
         allowed = {field.name for field in resource.fields if not field.read_only}
         raw: dict[str, str] = {}
@@ -1653,13 +2084,13 @@ class AdminSite:
         async with form:
             for name, value in form:
                 if name not in allowed:
-                    errors["__all__"] = "The form contains an unexpected field."
+                    errors["__all__"] = self._messages.text("validation.form.unexpected")
                     continue
                 if name in raw:
-                    errors[name] = "Submit exactly one value for this field."
+                    errors[name] = self._messages.text("validation.form.duplicate")
                     continue
                 if isinstance(value, File):
-                    errors[name] = "File uploads are not supported by this field."
+                    errors[name] = self._messages.text("validation.form.upload")
                     continue
                 raw[name] = value
 
@@ -1668,7 +2099,10 @@ class AdminSite:
         for admin_field in resource.fields:
             if admin_field.read_only:
                 continue
-            parsed_value, parse_error = admin_field.parse(raw.get(admin_field.name))
+            parsed_value, parse_error = admin_field.parse(
+                raw.get(admin_field.name),
+                messages=self._messages,
+            )
             if admin_field.kind == "checkbox":
                 display_values[admin_field.name] = bool(parsed_value)
             if parse_error is not None:
@@ -1691,7 +2125,7 @@ class AdminSite:
             )
             if choice is None:
                 values.pop(relationship.field, None)
-                errors[relationship.field] = "Select an authorized related record."
+                errors[relationship.field] = self._messages.text("validation.form.relationship")
                 continue
             values[relationship.field] = choice.id
             display_values[relationship.field] = choice.id
@@ -1710,7 +2144,7 @@ class AdminSite:
     ) -> tuple[AdminBulkAction, tuple[str, ...]] | Response:
         content_type = (context.req.header("content-type") or "").partition(";")[0].strip().lower()
         if content_type != "application/x-www-form-urlencoded":
-            return problem(415, title="Admin forms require application/x-www-form-urlencoded")
+            return problem(415, title=self._messages.text("problem.form_content_type"))
         limits = FormDataLimits(
             max_body_bytes=_FORM_BODY_LIMIT,
             max_file_bytes=0,
@@ -1722,7 +2156,11 @@ class AdminSite:
         try:
             form = await context.req.form_data(limits)
         except (FormDataLimitError, TypeError) as form_error:
-            return problem(413, title="Admin bulk form rejected", detail=str(form_error))
+            return problem(
+                413,
+                title=self._messages.text("problem.bulk_form"),
+                detail=str(form_error),
+            )
 
         action_slug: str | None = None
         object_ids: list[str] = []
@@ -1730,10 +2168,10 @@ class AdminSite:
         async with form:
             for name, value in form:
                 if isinstance(value, File):
-                    error = "File uploads are not accepted by bulk actions."
+                    error = self._messages.text("validation.bulk.upload")
                 elif name == "action":
                     if action_slug is not None:
-                        error = "Submit exactly one bulk action."
+                        error = self._messages.text("validation.bulk.duplicate_action")
                     else:
                         action_slug = value
                 elif name == "selected":
@@ -1742,27 +2180,33 @@ class AdminSite:
                         or len(value) > 255
                         or any(ord(character) < 0x20 for character in value)
                     ):
-                        error = "Selected object IDs must be bounded printable strings."
+                        error = self._messages.text("validation.bulk.object_ids")
                     else:
                         object_ids.append(value)
                 else:
-                    error = "The bulk form contains an unexpected field."
+                    error = self._messages.text("validation.bulk.unexpected")
 
         if error is None and action_slug is None:
-            error = "Choose a bulk action."
+            error = self._messages.text("validation.bulk.choose")
         action = None if action_slug is None else resource.bulk_action_map.get(action_slug)
         if error is None and action is None:
-            error = "Choose a registered bulk action."
+            error = self._messages.text("validation.bulk.registered")
         unique_ids = tuple(dict.fromkeys(object_ids))
         if error is None and not unique_ids:
-            error = "Select at least one record."
+            error = self._messages.text("validation.bulk.select_one")
         if error is None and action is not None and len(object_ids) > action.max_selected:
-            error = f"Select at most {action.max_selected} records."
+            error = self._messages.text(
+                "validation.bulk.limit",
+                limit=action.max_selected,
+            )
         if error is not None or action is None:
-            content = self._renderer.bulk_error(resource, error or "The bulk form is invalid.")
+            content = self._renderer.bulk_error(
+                resource,
+                error or self._messages.text("validation.bulk.invalid"),
+            )
             return self._renderer.response(
                 context,
-                title="Bulk action rejected",
+                title=self._messages.text("bulk.rejected"),
                 actor=actor,
                 content=content,
                 status=422,
@@ -1814,15 +2258,18 @@ class AdminSite:
             status=422,
         )
 
-    @staticmethod
-    def _safe_errors(resource: AdminResource, errors: Mapping[str, str]) -> Mapping[str, str]:
+    def _safe_errors(
+        self,
+        resource: AdminResource,
+        errors: Mapping[str, str],
+    ) -> Mapping[str, str]:
         allowed = set(resource.field_map) | {"__all__"}
         safe = {
             name if name in allowed else "__all__": message
             for name, message in errors.items()
             if message
         }
-        return safe or {"__all__": "The record could not be saved."}
+        return safe or {"__all__": self._messages.text("validation.form.save")}
 
     @staticmethod
     def _validate_bulk_result(

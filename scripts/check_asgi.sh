@@ -70,6 +70,24 @@ uv run python -c \
   "${identity}"
 
 admin_auth=(-H "cf-access-authenticated-user-email: developer@example.com")
+admin_home_headers="$(mktemp)"
+admin_home="$(
+  curl --fail --silent --show-error --max-time 10 \
+    --dump-header "${admin_home_headers}" \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}/admin"
+)"
+if [[ "${admin_home}" != *"golden-app Operations"* \
+  || "${admin_home}" != *'class="skip-link"'* \
+  || "${admin_home}" != *"@media(prefers-reduced-motion:reduce)"* ]]; then
+  echo "ASGI admin home is missing its branding and accessibility contract" >&2
+  exit 1
+fi
+if ! grep -qiF "style-src 'sha256-" "${admin_home_headers}" \
+  || grep -qiF "'unsafe-inline'" "${admin_home_headers}"; then
+  echo "ASGI admin home is missing its hashed style CSP" >&2
+  exit 1
+fi
 admin_denied_status="$(
   curl --silent --show-error --output /dev/null --write-out "%{http_code}" --max-time 10 \
     -H "cf-access-authenticated-user-email: viewer@example.com" \
@@ -96,10 +114,20 @@ fi
 admin_list="$(
   curl --fail --silent --show-error --max-time 10 \
     "${admin_auth[@]}" \
-    "http://127.0.0.1:${port}/admin/todos?q=golden"
+    "http://127.0.0.1:${port}/admin/todos?view=title-a-z&q=golden"
 )"
-if [[ "${admin_list}" != *"ASGI golden admin"* ]]; then
-  echo "ASGI admin list did not return its identity-scoped record" >&2
+if [[ "${admin_list}" != *"ASGI golden admin"* \
+  || "${admin_list}" != *'aria-current="page">Title A-Z'* ]]; then
+  echo "ASGI admin list did not apply its identity-scoped saved view" >&2
+  exit 1
+fi
+admin_csv="$(
+  curl --fail --silent --show-error --max-time 10 \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}/admin/todos/export.csv?view=title-a-z&q=golden"
+)"
+if [[ "${admin_csv}" != *"ASGI golden admin"* ]]; then
+  echo "ASGI admin CSV did not return its bounded identity-scoped record" >&2
   exit 1
 fi
 admin_history="$(
@@ -107,8 +135,8 @@ admin_history="$(
     "${admin_auth[@]}" \
     "http://127.0.0.1:${port}${admin_location}/history"
 )"
-if [[ "${admin_history}" != *"resource:add"* || "${admin_history}" == *"ASGI golden admin"* ]]; then
-  echo "ASGI admin history is missing redacted audit evidence" >&2
+if [[ "${admin_history}" != *"Add record"* || "${admin_history}" == *"ASGI golden admin"* ]]; then
+  echo "ASGI admin history is missing localized, redacted audit evidence" >&2
   exit 1
 fi
 

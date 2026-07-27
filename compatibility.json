@@ -1,5 +1,5 @@
 {
-  "generated_by": "create-hayate 0.8.0",
+  "generated_by": "create-hayate 0.10.0",
   "lock_sha256": "fab4d239dc9ffeed60c06a04adf8449e9542d0ec2ee820ca94a08b8d851466d9",
   "mcp_revision": "2025-11-25",
   "node": "24",
@@ -8,8 +8,8 @@
       "commit": null,
       "package": "create-hayate",
       "role": "Scaffold source",
-      "source": "uv.lock",
-      "version": "0.8.0"
+      "source": "golden-app.toml",
+      "version": "0.10.0"
     },
     {
       "commit": null,
@@ -54,11 +54,11 @@
       "version": "1.6.3"
     },
     {
-      "commit": "eddd6213d1ebcd98d9b54a89fde883a349484ba0",
+      "commit": "aedd4c47cbbe7c7d26cdf39b6c65fa201996369d",
       "package": "hayate-admin",
       "role": "Explicit operational administration",
       "source": "vendored reviewed commit",
-      "version": "0.1.0"
+      "version": "0.2.0"
     },
     {
       "commit": "c133900998c487a44d40a103c52f2d469047deda",

@@ -2,7 +2,7 @@
 
 ## Derivation
 
-The repository is synchronized with public `create-hayate==0.8.0` using the
+The repository is synchronized with public `create-hayate==0.10.0` using the
 Workers production preset plus its opt-in admin profile. Future changes should remain expressible as either
 an upstream scaffold improvement or a clearly documented reference-only
 addition. `golden-app.toml` records the generator and protocol lines.
@@ -60,7 +60,7 @@ the class default.
 
 ## Data and migrations
 
-SQL files are the source of truth. `hayate-sql` compiles thirteen explicit
+SQL files are the source of truth. `hayate-sql` compiles sixteen explicit
 cardinality contracts against the complete D1/SQLite migration history and
 generates `src/queries.py`. Admin list/history reads remain owner-scoped and
 bounded; audit records omit submitted values. Production migrations are
@@ -73,8 +73,9 @@ implies automatic production migration.
 - ASGI E2E starts a real Uvicorn process after direct tests, exercising the
   restart boundary and SQLite persistence.
 - workerd E2E applies real local D1 migrations, uses the real Workers adapter,
-  and exercises admin allowlist, Origin, mutation, audit, and bundle inclusion.
-- Chromium drives the generated full-page admin CRUD/search/history flow and
-  fails on console, page, or network errors.
+and exercises admin allowlist, Origin, mutation, audit, localization, CSP,
+saved-view/CSV behavior, and bundle inclusion.
+- Chromium drives the generated full-page admin CRUD/search/export/history
+  flow and fails on console, page, or unexpected network errors.
 - OpenAPI JSON, TypeScript types, compatibility Markdown, and compatibility
   JSON are checked artifacts regenerated in CI.

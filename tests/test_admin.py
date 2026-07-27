@@ -1,3 +1,7 @@
+import html
+import re
+from uuid import uuid4
+
 import pytest
 
 from app import app
@@ -21,7 +25,13 @@ async def test_admin_requires_access_and_the_operator_allowlist():
 
     accepted = await app.request("/admin", headers=OPERATOR)
     assert accepted.status == 200
-    assert "golden-app Operations" in await accepted.text()
+    accepted_html = await accepted.text()
+    assert "golden-app Operations" in accepted_html
+    assert "Skip to main content" in accepted_html
+    assert "@media(prefers-reduced-motion:reduce)" in accepted_html
+    policy = accepted.headers.get("content-security-policy") or ""
+    assert "style-src 'sha256-" in policy
+    assert "'unsafe-inline'" not in policy
 
 
 @pytest.mark.asyncio
@@ -77,8 +87,8 @@ async def test_admin_crud_is_owner_scoped_origin_checked_and_audited():
     )
     history_html = await history.text()
     assert history.status == 200
-    assert "resource:add" in history_html
-    assert "resource:change" in history_html
+    assert "Add record" in history_html
+    assert "Change record" in history_html
     assert "shipped" not in history_html
 
     deleted = await app.request(
@@ -88,3 +98,54 @@ async def test_admin_crud_is_owner_scoped_origin_checked_and_audited():
         body="",
     )
     assert deleted.status == 303
+
+
+@pytest.mark.asyncio
+async def test_admin_saved_view_cursor_and_csv_are_bounded_and_owner_scoped():
+    prefix = f"Cursor-{uuid4()}-"
+    titles = tuple(f"{prefix}{suffix}" for suffix in ("C", "A", "B"))
+    for title in titles:
+        created = await app.request(
+            "/todos",
+            method="POST",
+            headers={**OPERATOR, "content-type": "application/json"},
+            json={"title": title},
+        )
+        assert created.status == 201
+
+    first = await app.request(
+        f"/admin/todos?view=title-a-z&q={prefix}",
+        headers=OPERATOR,
+    )
+    first_html = await first.text()
+    assert first.status == 200
+    assert "Title A-Z" in first_html
+    assert titles[1] in first_html
+    assert titles[2] in first_html
+    assert titles[0] not in first_html
+    next_match = re.search(r'href="([^"]*cursor=[^"]+)"[^>]*>Next</a>', first_html)
+    assert next_match is not None
+
+    second = await app.request(html.unescape(next_match.group(1)), headers=OPERATOR)
+    second_html = await second.text()
+    assert second.status == 200
+    assert titles[1] not in second_html
+    assert titles[2] not in second_html
+    assert titles[0] in second_html
+
+    cross_site = await app.request(
+        f"/admin/todos/export.csv?view=title-a-z&q={prefix}",
+        headers={**OPERATOR, "sec-fetch-site": "cross-site"},
+    )
+    assert cross_site.status == 403
+
+    exported = await app.request(
+        f"/admin/todos/export.csv?view=title-a-z&q={prefix}",
+        headers=OPERATOR,
+    )
+    csv_body = await exported.text()
+    assert exported.status == 200
+    assert exported.headers.get("content-disposition") == ('attachment; filename="todos.csv"')
+    assert csv_body.startswith("ID,Title,Done\r\n")
+    assert all(title in csv_body for title in titles)
+    assert "viewer private record" not in csv_body

@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.8.0` and contains one application core that runs unchanged
+`create-hayate==0.10.0` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP
@@ -56,7 +56,7 @@ HTTP, then read the same identity-scoped data through an MCP 2025-11-25
 | Agent protocol | MCP 2025-11-25 initialize and structured tool result |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |
-| Operations | Explicit TODO admin; operator allowlist, owner scope, exact Origin, bounded queries, redacted history |
+| Operations | Explicit TODO admin; operator allowlist, owner scope, exact Origin, cursor paging, saved views, bounded CSV, redacted localized history, safe branding |
 | Production | Exact-origin CORS, security headers, 1 MiB body limit, native rate limiting |
 | Supply chain | Locked dependencies, dependency audit, workflow audit, pinned actions |
 
@@ -103,11 +103,14 @@ production uses the placeholder `operator@example.com` until the deployment
 owner replaces it. There is no anonymous mode, default superuser, reflected
 table access, or generic SQL endpoint.
 
-Records and audit history are scoped to the Access subject. List controls are
-bounded checked-SQL search/sort/page contracts. Mutations require an exact
-configured Origin, and persistent audit rows deliberately omit submitted
-values. The reviewed vendored source commits and MIT licenses live under
-`admin/`.
+Records and audit history are scoped to the Access subject. List controls use
+bounded checked-SQL search/sort/cursor contracts, static saved views, and a
+separately authorized CSV export with hard row and byte ceilings. Mutations
+require an exact configured Origin, and persistent audit rows deliberately
+omit submitted values. Branding is escaped plain text with contrast-checked
+theme tokens and a hashed style CSP; the page includes semantic landmarks,
+visible focus, reduced-motion handling, and application-scoped localization.
+The reviewed vendored source commits and MIT licenses live under `admin/`.
 
 Run the optional real-browser gate after installing Chromium:
 

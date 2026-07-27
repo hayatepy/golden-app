@@ -479,6 +479,26 @@
         ]
       }
     },
+    "/admin/{resource}/export.csv": {
+      "get": {
+        "operationId": "get_admin_resource_export_csv",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        },
+        "parameters": [
+          {
+            "name": "resource",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/admin/{resource}/relationship/{field}/choices": {
       "get": {
         "operationId": "get_admin_resource_relationship_field_choices",
