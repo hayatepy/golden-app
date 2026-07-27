@@ -69,6 +69,49 @@ uv run python -c \
   'import json,sys; assert json.loads(sys.argv[1])["subject"] == "asgi@example.com"' \
   "${identity}"
 
+admin_auth=(-H "cf-access-authenticated-user-email: developer@example.com")
+admin_denied_status="$(
+  curl --silent --show-error --output /dev/null --write-out "%{http_code}" --max-time 10 \
+    -H "cf-access-authenticated-user-email: viewer@example.com" \
+    "http://127.0.0.1:${port}/admin"
+)"
+if [[ "${admin_denied_status}" != "403" ]]; then
+  echo "expected non-operator ASGI admin request to return 403; got ${admin_denied_status}" >&2
+  exit 1
+fi
+admin_headers="$(mktemp)"
+curl --fail --silent --show-error --max-time 10 \
+  --dump-header "${admin_headers}" \
+  --output /dev/null \
+  -X POST "http://127.0.0.1:${port}/admin/todos/create" \
+  "${admin_auth[@]}" \
+  -H "origin: https://app.example.com" \
+  -H "content-type: application/x-www-form-urlencoded" \
+  --data "title=ASGI+golden+admin"
+admin_location="$(awk 'tolower($1) == "location:" {print $2}' "${admin_headers}" | tr -d '\r')"
+if [[ "${admin_location}" != /admin/todos/object/* ]]; then
+  echo "ASGI admin create did not return an object redirect" >&2
+  exit 1
+fi
+admin_list="$(
+  curl --fail --silent --show-error --max-time 10 \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}/admin/todos?q=golden"
+)"
+if [[ "${admin_list}" != *"ASGI golden admin"* ]]; then
+  echo "ASGI admin list did not return its identity-scoped record" >&2
+  exit 1
+fi
+admin_history="$(
+  curl --fail --silent --show-error --max-time 10 \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}${admin_location}/history"
+)"
+if [[ "${admin_history}" != *"resource:add"* || "${admin_history}" == *"ASGI golden admin"* ]]; then
+  echo "ASGI admin history is missing redacted audit evidence" >&2
+  exit 1
+fi
+
 openapi="$(
   curl --fail --silent --show-error --max-time 10 \
     "${auth[@]}" \

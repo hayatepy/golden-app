@@ -5,4 +5,5 @@ from types import SimpleNamespace
 LOCAL_ENV = SimpleNamespace(
     ENVIRONMENT="local",
     CORS_ORIGINS="http://localhost:3000",
+    ADMIN_EMAILS="developer@example.com",
 )

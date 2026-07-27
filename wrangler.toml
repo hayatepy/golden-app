@@ -7,6 +7,7 @@ compatibility_flags = ["python_workers"]
 ENVIRONMENT = "production"
 ACCESS_TEAM_DOMAIN = "https://your-team.cloudflareaccess.com"
 ACCESS_AUD = "replace-with-your-access-application-audience"
+ADMIN_EMAILS = "developer@example.com"
 CORS_ORIGINS = "https://app.example.com"
 
 [[d1_databases]]
@@ -25,6 +26,7 @@ ENVIRONMENT = "production"
 CORS_ORIGINS = "https://app.example.com"
 ACCESS_TEAM_DOMAIN = "https://your-team.cloudflareaccess.com"
 ACCESS_AUD = "replace-with-your-access-application-audience"
+ADMIN_EMAILS = "operator@example.com"
 
 [[env.production.d1_databases]]
 binding = "DB"

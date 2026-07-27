@@ -100,6 +100,12 @@ if [[ -z "${upload}" ]]; then
   cat "${dry_run_log}"
   exit 1
 fi
+for admin_module in hayate_admin/site.py hayate_htmx/request.py; do
+  if [[ ! -f "${bundle_dir}/${admin_module}" ]]; then
+    echo "vendored admin module is absent from the workerd bundle: ${admin_module}" >&2
+    exit 1
+  fi
+done
 
 auth=(-H "cf-access-authenticated-user-email: workerd@example.com")
 created="$(
@@ -183,5 +189,76 @@ uv run python -c \
   'import json,sys; result=json.loads(sys.argv[1])["result"]["structuredContent"]; assert result["subject"] == "workerd@example.com"; assert sys.argv[2] in {todo["id"] for todo in result["todos"]}' \
   "${called}" \
   "${todo_id}"
+
+terminate_tree "${server_pid}"
+wait "${server_pid}" 2>/dev/null || true
+server_pid=""
+(
+  cd "${root}"
+  run_workers dev --port "${port}"
+) >>"${log_file}" 2>&1 &
+server_pid=$!
+
+admin_auth=(-H "cf-access-authenticated-user-email: developer@example.com")
+admin_ready=false
+for _ in {1..60}; do
+  if curl --fail --silent --max-time 2 \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}/admin" >/dev/null; then
+    admin_ready=true
+    break
+  fi
+  if ! kill -0 "${server_pid}" 2>/dev/null; then
+    cat "${log_file}"
+    exit 1
+  fi
+  sleep 1
+done
+if [[ "${admin_ready}" != true ]]; then
+  cat "${log_file}"
+  exit 1
+fi
+
+admin_denied_status="$(
+  curl --silent --show-error --output /dev/null --write-out "%{http_code}" --max-time 10 \
+    -H "cf-access-authenticated-user-email: viewer@example.com" \
+    "http://127.0.0.1:${port}/admin"
+)"
+if [[ "${admin_denied_status}" != "403" ]]; then
+  echo "expected non-operator workerd admin request to return 403; got ${admin_denied_status}" >&2
+  exit 1
+fi
+admin_headers="$(mktemp)"
+curl --fail --silent --show-error --max-time 10 \
+  --dump-header "${admin_headers}" \
+  --output /dev/null \
+  -X POST "http://127.0.0.1:${port}/admin/todos/create" \
+  "${admin_auth[@]}" \
+  -H "origin: https://app.example.com" \
+  -H "content-type: application/x-www-form-urlencoded" \
+  --data "title=D1+golden+admin"
+admin_location="$(awk 'tolower($1) == "location:" {print $2}' "${admin_headers}" | tr -d '\r')"
+if [[ "${admin_location}" != /admin/todos/object/* ]]; then
+  echo "workerd admin create did not return an object redirect" >&2
+  exit 1
+fi
+admin_list="$(
+  curl --fail --silent --show-error --max-time 10 \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}/admin/todos?q=golden"
+)"
+if [[ "${admin_list}" != *"D1 golden admin"* ]]; then
+  echo "workerd admin list did not return its identity-scoped record" >&2
+  exit 1
+fi
+admin_history="$(
+  curl --fail --silent --show-error --max-time 10 \
+    "${admin_auth[@]}" \
+    "http://127.0.0.1:${port}${admin_location}/history"
+)"
+if [[ "${admin_history}" != *"resource:add"* || "${admin_history}" == *"D1 golden admin"* ]]; then
+  echo "workerd admin history is missing redacted audit evidence" >&2
+  exit 1
+fi
 
 echo "workerd ${entrypoint} golden flow passed: ${upload} todo_id=${todo_id}"

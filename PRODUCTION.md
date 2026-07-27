@@ -13,6 +13,9 @@ first production deployment.
 - Do not commit application secrets. Add future secrets with
   `wrangler secret put --env production`.
 - Confirm `/whoami` returns the Access subject expected by your tenancy model.
+- Replace `ADMIN_EMAILS` with a reviewed, case-insensitive operator allowlist.
+- Replace `ADMIN_ALLOWED_ORIGINS` in `src/feature_admin.py` with the exact
+  HTTPS origin that serves `/admin`.
 
 ## Database
 
@@ -33,6 +36,8 @@ first production deployment.
 - Keep the 1 MiB body limit or document and test a deliberate replacement.
 - Review Cloudflare Access, rate-limit, D1, and Worker observability retention.
   Never record SQL text, bound values, Access JWTs, or personal data.
+- Define retention and incident-response access for append-only redacted
+  `admin_audit_events`; never add submitted form values to that table.
 
 ## Build and deploy
 
@@ -45,7 +50,7 @@ first production deployment.
   bytecode, and package metadata. Remove an exclusion only with a measured,
   tested reason.
 - Deploy with `uv run python manage_workers.py deploy --env production`.
-- Exercise `/health`, `/whoami`, `/todos`, `/docs`, and MCP `tools/call` from
+- Exercise `/health`, `/whoami`, `/todos`, `/admin`, `/docs`, and MCP `tools/call` from
   an Access-authenticated client before shifting traffic.
 
 ## Portable fallback
