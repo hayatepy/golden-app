@@ -58,6 +58,15 @@ async def test_openapi_and_scalar_come_from_the_registered_routes():
         ),
     }
     assert document["paths"]["/health"]["get"]["security"] == []
+    upload = document["paths"]["/uploads"]["post"]
+    assert upload["operationId"] == "digestUpload"
+    upload_schema = upload["requestBody"]["content"]["multipart/form-data"]["schema"]
+    assert upload_schema["required"] == ["file"]
+    assert upload_schema["properties"]["file"] == {
+        "type": "string",
+        "format": "binary",
+    }
+    assert upload["responses"]["413"]["description"] == "Payload Too Large"
 
     docs = await app.request("/docs", headers=AUTH_HEADERS)
     assert docs.status == 200

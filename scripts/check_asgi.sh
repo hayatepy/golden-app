@@ -81,6 +81,17 @@ curl --fail --silent --show-error --max-time 10 \
   "${auth[@]}" \
   "http://127.0.0.1:${port}/docs" >/dev/null
 
+uploaded="$(
+  printf 'portable typed upload' |
+    curl --fail --silent --show-error --max-time 10 \
+      -X POST "http://127.0.0.1:${port}/uploads" \
+      "${auth[@]}" \
+      -F 'file=@-;filename=golden.txt;type=text/plain'
+)"
+uv run python -c \
+  'import json,sys; value=json.loads(sys.argv[1]); assert value == {"name":"golden.txt","type":"text/plain","size":21,"sha256":"f173d53139adf5d1395cc0c4e3ff2334547b1482736b056c157b52ae951ad267"}' \
+  "${uploaded}"
+
 initialized="$(
   curl --fail --silent --show-error --max-time 10 \
     -X POST "http://127.0.0.1:${port}/mcp" \
