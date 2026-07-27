@@ -1,5 +1,5 @@
 schema_version = 1
-generated_by = "create-hayate 0.7.0"
+generated_by = "create-hayate 0.7.1"
 mcp_revision = "2025-11-25"
 python_line = "3.13"
 node_line = "24"
