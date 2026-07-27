@@ -7,6 +7,7 @@ dependencies = [
   "hayate-sql>=0.1.1,<0.2",
   "hayate-mcp>=0.11.0,<0.12",
   "hayate-openapi>=0.7,<0.8",
+  "jinja2==3.1.6",
 ]
 
 [dependency-groups]
@@ -17,16 +18,21 @@ dev = [
   "uvicorn>=0.30",
   "workers-py>=1.15,<2",
   "workers-runtime-sdk>=1.6,<2",
+  "playwright>=1.54,<2",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+  "browser: end-to-end smoke tests that require an installed Chromium browser",
+]
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["src/hayate_admin", "src/hayate_htmx"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]

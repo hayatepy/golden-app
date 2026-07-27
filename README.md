@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.7.2` and contains one application core that runs unchanged
+`create-hayate==0.8.0` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP
@@ -27,8 +27,8 @@ uv run python scripts/check_sql_contracts.py
 
 Every executable command block in this README runs in CI. The direct test
 suite covers identity-scoped CRUD, bounded typed multipart uploads, OpenAPI,
-MCP, production middleware, SQL contracts, and restart-safe local database
-bootstrap.
+MCP, production middleware, explicit operational admin, SQL contracts,
+persistent redacted audit history, and restart-safe local database bootstrap.
 
 Run the complete ASGI path:
 
@@ -56,6 +56,7 @@ HTTP, then read the same identity-scoped data through an MCP 2025-11-25
 | Agent protocol | MCP 2025-11-25 initialize and structured tool result |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |
+| Operations | Explicit TODO admin; operator allowlist, owner scope, exact Origin, bounded queries, redacted history |
 | Production | Exact-origin CORS, security headers, 1 MiB body limit, native rate limiting |
 | Supply chain | Locked dependencies, dependency audit, workflow audit, pinned actions |
 
@@ -92,6 +93,28 @@ strictly HTTP.
 - `POST /uploads` — bounded multipart file streaming with a typed digest response.
 - `GET /openapi.json`, `GET /docs` — authenticated schema and docs.
 - `POST /mcp` — MCP Streamable HTTP.
+- `GET|POST /admin/*` — separately allowlisted operational TODO administration.
+
+## Operations admin
+
+The reference enables create-hayate's opt-in `admin` profile. Local requests
+to `/admin` require the `developer@example.com` Cloudflare Access identity;
+production uses the placeholder `operator@example.com` until the deployment
+owner replaces it. There is no anonymous mode, default superuser, reflected
+table access, or generic SQL endpoint.
+
+Records and audit history are scoped to the Access subject. List controls are
+bounded checked-SQL search/sort/page contracts. Mutations require an exact
+configured Origin, and persistent audit rows deliberately omit submitted
+values. The reviewed vendored source commits and MIT licenses live under
+`admin/`.
+
+Run the optional real-browser gate after installing Chromium:
+
+```sh
+uv run playwright install chromium
+HAYATE_ADMIN_BROWSER_TESTS=1 uv run pytest -m browser -q
+```
 
 ## Production use
 

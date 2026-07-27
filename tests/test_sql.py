@@ -23,8 +23,8 @@ def test_queries_compile_against_the_complete_migration_history():
 
 def test_local_bootstrap_migration_is_safe_across_process_restarts():
     root = Path(__file__).resolve().parents[1]
-    migration = (root / "migrations" / "0001_create_todos.sql").read_text(encoding="utf-8")
     database = sqlite3.connect(":memory:")
 
-    database.executescript(migration)
-    database.executescript(migration)
+    for _ in range(2):
+        for migration in sorted((root / "migrations").glob("*.sql")):
+            database.executescript(migration.read_text(encoding="utf-8"))

@@ -12,6 +12,8 @@ Before production use:
 - complete every item in [PRODUCTION.md](PRODUCTION.md);
 - replace every placeholder in `wrangler.toml`;
 - use a Cloudflare Access application and explicit allow policy;
+- replace the generated admin operator email and exact-Origin allowlists;
+- retain only the redacted admin audit fields; never add submitted values;
 - define secrets, logging/retention, migration, rollback, and incident owners;
 - review dependency and release attestations for the versions actually
   deployed.

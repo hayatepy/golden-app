@@ -2,8 +2,8 @@
 
 ## Derivation
 
-The repository is synchronized with public `create-hayate==0.7.0` using the
-Workers production preset. Future changes should remain expressible as either
+The repository is synchronized with public `create-hayate==0.8.0` using the
+Workers production preset plus its opt-in admin profile. Future changes should remain expressible as either
 an upstream scaffold improvement or a clearly documented reference-only
 addition. `golden-app.toml` records the generator and protocol lines.
 
@@ -24,7 +24,8 @@ HTTP / MCP ─────▶│ src/app.py + features│
 
 Runtime resources enter through the Hayate request context. `src/storage.py`
 selects D1 only when the `DB` binding is present; otherwise it uses local
-SQLite. HTTP and MCP call that same storage module with the same principal.
+SQLite. HTTP, MCP, and admin call that same storage module with the same
+principal.
 
 `schemas.TodoResponse` is the source for HTTP response validation and UUID
 serialization, OpenAPI response schemas, and the MCP output schema. The
@@ -46,7 +47,9 @@ and email. Protected requests fail closed when configuration is absent.
 
 `/health` is the only application-public route. CORS preflights bypass
 application identity and rate limiting but still pass through the exact-origin
-CORS policy. API data, schema/docs, and MCP require identity.
+CORS policy. API data, schema/docs, MCP, and admin require identity. Admin
+adds a second operator-email decision after Cloudflare Access and checks the
+exact Origin of every mutation.
 
 ## Workers entrypoint
 
@@ -57,18 +60,21 @@ the class default.
 
 ## Data and migrations
 
-SQL files are the source of truth. `hayate-sql` compiles four explicit
+SQL files are the source of truth. `hayate-sql` compiles thirteen explicit
 cardinality contracts against the complete D1/SQLite migration history and
-generates `src/queries.py`. Production migrations are always a separate
-operator action. Local bootstrap is restart-safe but never implies automatic
-production migration.
+generates `src/queries.py`. Admin list/history reads remain owner-scoped and
+bounded; audit records omit submitted values. Production migrations are
+always a separate operator action. Local bootstrap is restart-safe but never
+implies automatic production migration.
 
 ## Evidence
 
 - Direct tests execute application contracts without a server.
 - ASGI E2E starts a real Uvicorn process after direct tests, exercising the
   restart boundary and SQLite persistence.
-- workerd E2E applies a real local D1 migration and uses the real Workers
-  adapter.
+- workerd E2E applies real local D1 migrations, uses the real Workers adapter,
+  and exercises admin allowlist, Origin, mutation, audit, and bundle inclusion.
+- Chromium drives the generated full-page admin CRUD/search/history flow and
+  fails on console, page, or network errors.
 - OpenAPI JSON, TypeScript types, compatibility Markdown, and compatibility
   JSON are checked artifacts regenerated in CI.
