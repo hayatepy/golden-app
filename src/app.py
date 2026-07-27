@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from hayate import URL, Context, Hayate, HTTPException
-from hayate_openapi import Path, StdlibProvider, endpoint
+from hayate_openapi import Constraints, Path, Query, StdlibProvider, endpoint
 
 from contracts import describe, validated
 from generated_features import register_features
@@ -68,8 +68,12 @@ async def whoami(c: Context):
     operation_id="listTodos",
     providers=_PROVIDERS,
 )
-async def todos_index(c: Context) -> list[TodoResponse]:
-    return [_todo_response(todo) for todo in await list_todos(c, subject(c))]
+async def todos_index(
+    c: Context,
+    limit: Annotated[int, Constraints(ge=1, le=100), Query()] = 25,
+) -> list[TodoResponse]:
+    todos = await list_todos(c, subject(c))
+    return [_todo_response(todo) for todo in todos[:limit]]
 
 
 @app.post("/todos", validated("json", TODO_CREATE_SCHEMA))

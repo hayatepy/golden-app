@@ -119,6 +119,15 @@ if [[ "${invalid_status}" != "400" ]]; then
   echo "expected malformed TODO UUID to return 400; got ${invalid_status}" >&2
   exit 1
 fi
+invalid_limit_status="$(
+  curl --silent --show-error --output /dev/null --write-out "%{http_code}" --max-time 10 \
+    "${auth[@]}" \
+    "http://127.0.0.1:${port}/todos?limit=101"
+)"
+if [[ "${invalid_limit_status}" != "400" ]]; then
+  echo "expected constrained TODO limit to return 400; got ${invalid_limit_status}" >&2
+  exit 1
+fi
 
 identity="$(
   curl --fail --silent --show-error --max-time 10 \
@@ -135,7 +144,7 @@ openapi="$(
     "http://127.0.0.1:${port}/openapi.json"
 )"
 uv run python -c \
-  'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; parameter=value["paths"]["/todos/{id}"]["get"]["parameters"][0]; assert parameter == {"name":"id","in":"path","required":True,"schema":{"type":"string","format":"uuid"}}; create=value["paths"]["/todos"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]; assert create["properties"]["id"] == {"type":"string","format":"uuid"}; listing=value["paths"]["/todos"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]; assert listing["type"] == "array"; assert listing["items"]["properties"]["id"] == {"type":"string","format":"uuid"}' \
+  'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; limit=value["paths"]["/todos"]["get"]["parameters"][0]; assert limit == {"name":"limit","in":"query","required":False,"schema":{"type":"integer","minimum":1,"maximum":100,"default":25}}; parameter=value["paths"]["/todos/{id}"]["get"]["parameters"][0]; assert parameter == {"name":"id","in":"path","required":True,"schema":{"type":"string","format":"uuid"}}; create=value["paths"]["/todos"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]; assert create["properties"]["id"] == {"type":"string","format":"uuid"}; listing=value["paths"]["/todos"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]; assert listing["type"] == "array"; assert listing["items"]["properties"]["id"] == {"type":"string","format":"uuid"}' \
   "${openapi}"
 
 initialized="$(
