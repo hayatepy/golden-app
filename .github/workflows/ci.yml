@@ -37,7 +37,7 @@ jobs:
       - run: git diff --exit-code -- COMPATIBILITY.md compatibility.json openapi.json client/api-types.ts
       - run: bash scripts/check_asgi.sh
 
-  workerd:
+  workerd-runtime:
     name: workerd (${{ matrix.entrypoint }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -58,6 +58,13 @@ jobs:
       - run: uv sync --locked
       - run: cp .dev.vars.example .dev.vars
       - run: bash scripts/check_workerd.sh "${{ matrix.entrypoint }}"
+
+  workerd:
+    needs: workerd-runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "class and global Workerd contracts passed"
 
   audit-dependencies:
     runs-on: ubuntu-latest
