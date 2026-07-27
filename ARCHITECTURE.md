@@ -2,7 +2,7 @@
 
 ## Derivation
 
-The repository is synchronized with public `create-hayate==0.10.0` using the
+The repository is synchronized with public `create-hayate==0.11.1` using the
 Workers production preset plus its opt-in admin profile. Future changes should remain expressible as either
 an upstream scaffold improvement or a clearly documented reference-only
 addition. `golden-app.toml` records the generator and protocol lines.
