@@ -1,5 +1,5 @@
 {
-  "generated_by": "create-hayate 0.7.1",
+  "generated_by": "create-hayate 0.7.2",
   "lock_sha256": "966a3bce976c5996434ea1094c7f278c34c7d8a75ea3c6830c66ea994e0b41b3",
   "mcp_revision": "2025-11-25",
   "node": "24",
@@ -7,7 +7,7 @@
     {
       "package": "create-hayate",
       "role": "Scaffold source",
-      "version": "0.7.1"
+      "version": "0.7.2"
     },
     {
       "package": "hayate",
