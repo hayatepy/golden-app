@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.13.0` and contains one application core that runs unchanged
+`create-hayate==0.13.1` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP

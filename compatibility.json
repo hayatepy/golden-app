@@ -1,5 +1,5 @@
 {
-  "generated_by": "create-hayate 0.13.0",
+  "generated_by": "create-hayate 0.13.1",
   "lock_sha256": "400de843b728b759aafc6fa55f1a810021f4c08837dbc6677e33db1313b2bcd8",
   "mcp_revision": "2026-07-28",
   "node": "24",
@@ -9,7 +9,7 @@
       "package": "create-hayate",
       "role": "Scaffold source",
       "source": "golden-app.toml",
-      "version": "0.13.0"
+      "version": "0.13.1"
     },
     {
       "commit": null,

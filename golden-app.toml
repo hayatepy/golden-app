@@ -1,5 +1,5 @@
 schema_version = 1
-generated_by = "create-hayate 0.13.0"
+generated_by = "create-hayate 0.13.1"
 admin_profile = "admin/profile.toml"
 mcp_revision = "2026-07-28"
 python_line = "3.13"
