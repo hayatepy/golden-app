@@ -1,0 +1,26 @@
+{
+  "name": "hayate-golden-app-contracts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "api:generate": "sh scripts/export_api.sh",
+    "api:check": "npm run api:generate && git diff --exit-code -- openapi.json client/api-types.ts client/api-client.ts",
+    "client:check": "tsc --noEmit",
+    "client:interop": "bash scripts/check_typescript_client.sh",
+    "supply-chain": "node scripts/check_node_runtime_dependencies.mjs && npm audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8",
+    "js-yaml": "4.3.0",
+    "minimatch": "10.2.5"
+  }
+}

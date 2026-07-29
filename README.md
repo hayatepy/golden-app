@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.12.0` and contains one application core that runs unchanged
+`create-hayate==0.13.0` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP
@@ -20,6 +20,7 @@ After cloning the repository, run:
 
 ```sh
 uv sync --locked
+npm ci --ignore-scripts
 cp .dev.vars.example .dev.vars
 uv run pytest
 uv run python scripts/check_sql_contracts.py
@@ -52,7 +53,7 @@ HTTP, then read the same identity-scoped data through a stateless MCP
 | Boundary | Verified behavior |
 |---|---|
 | Application | One `src/app.py`, WHATWG Request/Response, identity-scoped CRUD |
-| API contract | Typed UUID and binary-file validation, bounded multipart parsing, OpenAPI 3.1.1, hardened Scalar, pinned TypeScript generation |
+| API contract | Typed UUID and binary-file validation, bounded multipart parsing, OpenAPI 3.1.1, hardened Scalar, first-party zero-runtime TypeScript client |
 | Agent protocol | MCP 2026-07-28 discovery and structured complete result; 2025-11-25 compatibility |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |
@@ -65,13 +66,18 @@ Regenerate and verify the checked artifacts:
 
 ```sh
 uv run python scripts/export_compatibility.py --check
-sh scripts/export_api.sh
-git diff --exit-code -- COMPATIBILITY.md compatibility.json openapi.json client/api-types.ts
+npm run api:check
+npm run client:interop
 ```
 
 The generated [compatibility table](COMPATIBILITY.md) and
 [machine-readable JSON](compatibility.json) come from `uv.lock`,
 `golden-app.toml`, and `wrangler.toml`; CI fails when they drift.
+`client/api-client.ts` is generated from the same OpenAPI document as
+`client/api-types.ts`. It imports only the generated `paths` type and uses
+platform Fetch at runtime. The interoperability gate strictly compiles that
+client, then executes authenticated JSON, query/path, multipart, and delete
+operations against a real golden ASGI process.
 
 ## Runtime modes
 
