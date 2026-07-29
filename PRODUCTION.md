@@ -49,8 +49,9 @@ first production deployment.
 ## Build and deploy
 
 - Run `uv run pytest`.
-- Export and review `openapi.json` and `client/api-types.ts` with
-  `sh scripts/export_api.sh`.
+- Export and review `openapi.json`, `client/api-types.ts`, and
+  `client/api-client.ts` with `npm run api:check`; run
+  `npm run client:interop` against the real ASGI boundary.
 - Run a production bundle inspection:
   `uv run python manage_workers.py deploy --dry-run --env production`.
 - The generated `python_modules` exclusions remove ASGI/AWS adapters, WSGI,

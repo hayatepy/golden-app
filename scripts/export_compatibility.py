@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGES = (
     ("create-hayate", "Scaffold source"),
     ("hayate", "Application core and runtime adapters"),
-    ("hayate-openapi", "OpenAPI 3.1 and Scalar"),
+    ("hayate-openapi", "OpenAPI 3.1, Scalar, and zero-runtime TypeScript client"),
     ("hayate-mcp", "MCP transport and tools runtime"),
     ("hayate-sql", "Checked SQL and database adapters"),
     ("workers-py", "Cloudflare Python APIs"),

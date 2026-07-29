@@ -2,7 +2,7 @@
 
 ## Derivation
 
-The repository is synchronized with public `create-hayate==0.12.0` using the
+The repository is synchronized with public `create-hayate==0.13.0` using the
 Workers production preset plus its opt-in admin profile. Future changes should remain expressible as either
 an upstream scaffold improvement or a clearly documented reference-only
 addition. `golden-app.toml` records the generator and protocol lines.
@@ -89,5 +89,7 @@ and exercises admin allowlist, Origin, mutation, audit, localization, CSP,
 saved-view/CSV behavior, and bundle inclusion.
 - Chromium drives the generated full-page admin CRUD/search/export/history
   flow and fails on console, page, or unexpected network errors.
-- OpenAPI JSON, TypeScript types, compatibility Markdown, and compatibility
-  JSON are checked artifacts regenerated in CI.
+- OpenAPI JSON, TypeScript types, the first-party zero-runtime Fetch client,
+  compatibility Markdown, and compatibility JSON are checked artifacts
+  regenerated in CI. The generated client is strictly compiled and executed
+  against the real ASGI application.
