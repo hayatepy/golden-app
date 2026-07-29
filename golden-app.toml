@@ -1,7 +1,7 @@
 schema_version = 1
-generated_by = "create-hayate 0.11.1"
+generated_by = "create-hayate 0.12.0"
 admin_profile = "admin/profile.toml"
-mcp_revision = "2025-11-25"
+mcp_revision = "2026-07-28"
 python_line = "3.13"
 node_line = "24"
 default_workers_entrypoint = "WorkerEntrypoint class"

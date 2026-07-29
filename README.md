@@ -8,7 +8,7 @@
 
 This is the public, executable reference for the
 [Hayate ecosystem](https://github.com/hayatepy). It is generated from
-`create-hayate==0.11.1` and contains one application core that runs unchanged
+`create-hayate==0.12.0` and contains one application core that runs unchanged
 on ASGI with SQLite and Cloudflare Python Workers with D1.
 
 The app intentionally uses a generic TODO model. It contains no FolioMCP
@@ -44,8 +44,8 @@ bash scripts/check_workerd.sh global
 ```
 
 Both paths create a TODO and digest a bounded upload through authenticated
-HTTP, then read the same identity-scoped data through an MCP 2025-11-25
-`tools/call`.
+HTTP, then read the same identity-scoped data through a stateless MCP
+2026-07-28 `tools/call`.
 
 ## What is integrated
 
@@ -53,7 +53,7 @@ HTTP, then read the same identity-scoped data through an MCP 2025-11-25
 |---|---|
 | Application | One `src/app.py`, WHATWG Request/Response, identity-scoped CRUD |
 | API contract | Typed UUID and binary-file validation, bounded multipart parsing, OpenAPI 3.1.1, hardened Scalar, pinned TypeScript generation |
-| Agent protocol | MCP 2025-11-25 initialize and structured tool result |
+| Agent protocol | MCP 2026-07-28 discovery and structured complete result; 2025-11-25 compatibility |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |
 | Operations | Explicit TODO admin; operator allowlist, owner scope, exact Origin, cursor paging, saved views, bounded CSV, redacted localized history, safe branding |
