@@ -48,6 +48,12 @@ first production deployment.
 
 ## Build and deploy
 
+- Keep `APP_VERSION` in both Wrangler configurations and environments equal
+  to the application version in `pyproject.toml`. `X-App-Version` identifies
+  that semantic release; `X-Worker-Version` identifies the exact Cloudflare
+  Worker version created by the deploy. The version-metadata binding is not a
+  secret and exposes only its bounded version ID. See Cloudflare's
+  [version metadata binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/).
 - Run `uv run pytest`.
 - Export and review `openapi.json`, `client/api-types.ts`, and
   `client/api-client.ts` with `npm run api:check`; run
@@ -58,6 +64,10 @@ first production deployment.
   bytecode, and package metadata. Remove an exclusion only with a measured,
   tested reason.
 - Deploy with `uv run python manage_workers.py deploy --env production`.
+- Confirm both release headers after deployment:
+  `curl --silent --head https://your-worker.example/health`.
+  Match `X-Worker-Version` against `wrangler versions list` before shifting
+  traffic or investigating a mixed-version rollout.
 - Exercise `/health`, `/whoami`, `/todos`, `/admin`, `/docs`, and MCP `tools/call` from
   an Access-authenticated client before shifting traffic.
 

@@ -95,11 +95,57 @@ if [[ "${ready}" != true ]]; then
   exit 1
 fi
 
+release_headers="$(
+  curl --fail --silent --head --max-time 10 \
+    "http://127.0.0.1:${port}/health"
+)"
+if ! grep -qiF "x-app-version: 0.1.0" <<<"${release_headers}"; then
+  echo "workerd response is missing its semantic application version" >&2
+  exit 1
+fi
+worker_version="$(
+  awk -F': ' 'tolower($1) == "x-worker-version" {gsub(/\r/, "", $2); print $2}' \
+    <<<"${release_headers}"
+)"
+uv run python -c \
+  'import sys,uuid; value=sys.argv[1]; assert str(uuid.UUID(value)) == value' \
+  "${worker_version}"
+
 upload="$(grep -F "Total Upload:" "${dry_run_log}" | tail -1)"
 if [[ -z "${upload}" ]]; then
   cat "${dry_run_log}"
   exit 1
 fi
+for excluded_path in \
+  ".venv" \
+  ".venv-workers" \
+  "tests" \
+  "manage_workers.py" \
+  "node_compat.py" \
+  "python_modules/asgi.py" \
+  "python_modules/hayate/adapters/asgi.py" \
+  "python_modules/hayate/adapters/aws.py" \
+  "python_modules/workers/wsgi.py"; do
+  if [[ -e "${bundle_dir}/${excluded_path}" ]]; then
+    echo "excluded path reached the workerd bundle: ${excluded_path}" >&2
+    exit 1
+  fi
+done
+if find "${bundle_dir}" -type d -name "*.dist-info" -print -quit | grep -q .; then
+  echo "package metadata reached the workerd bundle" >&2
+  exit 1
+fi
+if find "${bundle_dir}" \( -type f -name "*.pyc" -o -type d -name "__pycache__" \) \
+  -print -quit | grep -q .; then
+  echo "Python cache reached the workerd bundle" >&2
+  exit 1
+fi
+for release_module in feature_release.py release_metadata.py; do
+  if [[ ! -f "${bundle_dir}/${release_module}" ]]; then
+    echo "release correlation module is absent from the workerd bundle: ${release_module}" >&2
+    exit 1
+  fi
+done
 for admin_module in hayate_admin/site.py hayate_htmx/request.py; do
   if [[ ! -f "${bundle_dir}/${admin_module}" ]]; then
     echo "vendored admin module is absent from the workerd bundle: ${admin_module}" >&2
@@ -299,4 +345,4 @@ if [[ "${admin_history}" != *"Add record"* || "${admin_history}" == *"D1 golden 
   exit 1
 fi
 
-echo "workerd ${entrypoint} golden flow passed: ${upload} todo_id=${todo_id}"
+echo "workerd ${entrypoint} golden flow passed: ${upload} worker_version=${worker_version} todo_id=${todo_id}"
