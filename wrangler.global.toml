@@ -8,6 +8,7 @@ ENVIRONMENT = "production"
 ACCESS_TEAM_DOMAIN = "https://your-team.cloudflareaccess.com"
 ACCESS_AUD = "replace-with-your-access-application-audience"
 ADMIN_EMAILS = "developer@example.com"
+APP_VERSION = "0.1.0"
 CORS_ORIGINS = "https://app.example.com"
 
 [[d1_databases]]
@@ -21,12 +22,19 @@ name = "API_RATE_LIMITER"
 namespace_id = "1001"
 simple = { limit = 60, period = 60 }
 
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
 [env.production.vars]
 ENVIRONMENT = "production"
+APP_VERSION = "0.1.0"
 CORS_ORIGINS = "https://app.example.com"
 ACCESS_TEAM_DOMAIN = "https://your-team.cloudflareaccess.com"
 ACCESS_AUD = "replace-with-your-access-application-audience"
 ADMIN_EMAILS = "operator@example.com"
+
+[env.production.version_metadata]
+binding = "CF_VERSION_METADATA"
 
 [[env.production.d1_databases]]
 binding = "DB"

@@ -23,6 +23,7 @@ def test_class_and_global_wrangler_configs_share_the_same_workload():
         "vars",
         "d1_databases",
         "ratelimits",
+        "version_metadata",
         "env",
         "python_modules",
     ):

@@ -2,7 +2,7 @@
 
 ## Derivation
 
-The repository is synchronized with public `create-hayate==0.13.2` using the
+The repository is synchronized with public `create-hayate==0.14.0` using the
 Workers production preset plus its opt-in admin profile. Future changes should remain expressible as either
 an upstream scaffold improvement or a clearly documented reference-only
 addition. `golden-app.toml` records the generator and protocol lines.
@@ -62,6 +62,13 @@ Access events are compact JSON with only `event`, `method`, `path`, `status`,
 `duration_ms`, and `request_id`. The path excludes its query string, and the
 logger never records headers or bodies. This keeps credentials, Access JWTs,
 form values, and uploaded content outside the default log contract.
+
+Release correlation is the next outer middleware boundary. Every response
+exposes the bounded semantic `X-App-Version`; native Workers responses also
+expose the platform-issued `X-Worker-Version` from Cloudflare's version
+metadata binding. Protected production requests fail closed if either identity
+is unavailable, while health and preflight remain usable for rollout
+diagnostics. Portable ASGI deliberately never claims a Worker version.
 
 ## Workers entrypoint
 

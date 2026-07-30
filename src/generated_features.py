@@ -8,10 +8,12 @@ from feature_mcp import register as register_mcp
 from feature_observability import register as register_observability
 from feature_openapi import register as register_openapi
 from feature_production import register as register_production
+from feature_release import register as register_release
 
 
 def register_features(app: Hayate) -> None:
     register_observability(app)
+    register_release(app)
     register_access(app)
     register_production(app)
     register_admin(app)
