@@ -128,7 +128,8 @@ name = "golden-app"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "hayate" },
+    { name = "hayate", version = "0.15.3", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'emscripten'" },
+    { name = "hayate", version = "0.15.3", source = { url = "https://files.pythonhosted.org/packages/55/00/eb7fb5e6fecca27667169dea5e321e04ccafdd763351ab6ac159354ec3d2/hayate-0.15.3-py3-none-any.whl" }, marker = "sys_platform == 'emscripten'" },
     { name = "hayate-mcp" },
     { name = "hayate-openapi" },
     { name = "hayate-sql" },
@@ -149,7 +150,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "hayate", specifier = ">=0.15.3,<0.16" },
+    { name = "hayate", marker = "sys_platform != 'emscripten'", specifier = ">=0.15.3,<0.16" },
+    { name = "hayate", marker = "sys_platform == 'emscripten'", url = "https://files.pythonhosted.org/packages/55/00/eb7fb5e6fecca27667169dea5e321e04ccafdd763351ab6ac159354ec3d2/hayate-0.15.3-py3-none-any.whl" },
     { name = "hayate-mcp", specifier = ">=0.12.1,<0.13" },
     { name = "hayate-openapi", specifier = ">=0.8.2,<0.9" },
     { name = "hayate-sql", specifier = ">=0.1.2,<0.2" },
@@ -199,6 +201,9 @@ wheels = [
 name = "hayate"
 version = "0.15.3"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "sys_platform != 'emscripten'",
+]
 dependencies = [
     { name = "uts46" },
 ]
@@ -208,11 +213,29 @@ wheels = [
 ]
 
 [[package]]
+name = "hayate"
+version = "0.15.3"
+source = { url = "https://files.pythonhosted.org/packages/55/00/eb7fb5e6fecca27667169dea5e321e04ccafdd763351ab6ac159354ec3d2/hayate-0.15.3-py3-none-any.whl" }
+resolution-markers = [
+    "sys_platform == 'emscripten'",
+]
+dependencies = [
+    { name = "uts46" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/00/eb7fb5e6fecca27667169dea5e321e04ccafdd763351ab6ac159354ec3d2/hayate-0.15.3-py3-none-any.whl", hash = "sha256:2192cf8b3ee40d3dbc34aba8d9a6457256ca6dd3d736c4db1f787b66c963aca5" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "uts46", specifier = ">=0.2,<1" }]
+
+[[package]]
 name = "hayate-mcp"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "hayate" },
+    { name = "hayate", version = "0.15.3", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'emscripten'" },
+    { name = "hayate", version = "0.15.3", source = { url = "https://files.pythonhosted.org/packages/55/00/eb7fb5e6fecca27667169dea5e321e04ccafdd763351ab6ac159354ec3d2/hayate-0.15.3-py3-none-any.whl" }, marker = "sys_platform == 'emscripten'" },
     { name = "jsonschema", marker = "sys_platform == 'emscripten'" },
     { name = "mcp", marker = "sys_platform != 'emscripten'" },
     { name = "rpds-py", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'emscripten'" },
@@ -227,7 +250,8 @@ name = "hayate-openapi"
 version = "0.8.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "hayate" },
+    { name = "hayate", version = "0.15.3", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'emscripten'" },
+    { name = "hayate", version = "0.15.3", source = { url = "https://files.pythonhosted.org/packages/55/00/eb7fb5e6fecca27667169dea5e321e04ccafdd763351ab6ac159354ec3d2/hayate-0.15.3-py3-none-any.whl" }, marker = "sys_platform == 'emscripten'" },
     { name = "jsonschema" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/9f/e4d39fe44e7952ab0ccc0a124962416e31a150b9390eb54a5f9aef9bff02/hayate_openapi-0.8.2.tar.gz", hash = "sha256:47ba5dd244ba8750b8205ba7c159286231edfb704c4a477ca62c46df5ace1950", size = 31555, upload-time = "2026-07-30T01:52:33.975Z" }
