@@ -1,6 +1,6 @@
 {
   "generated_by": "create-hayate 0.13.2",
-  "lock_sha256": "82fa8313483ca0412ba389e5ca610f47ea943a153c8ca5210cb881981d9a129e",
+  "lock_sha256": "4502453286edffcee72b1025f7e2f1c81c596cd4bf6734b9c8c52cd4622b6b61",
   "mcp_revision": "2026-07-28",
   "node": "24",
   "packages": [
@@ -16,14 +16,14 @@
       "package": "hayate",
       "role": "Application core and runtime adapters",
       "source": "uv.lock",
-      "version": "0.15.2"
+      "version": "0.15.3"
     },
     {
       "commit": null,
       "package": "hayate-openapi",
       "role": "OpenAPI 3.1, Scalar, and zero-runtime TypeScript client",
       "source": "uv.lock",
-      "version": "0.8.1"
+      "version": "0.8.2"
     },
     {
       "commit": null,
@@ -37,7 +37,7 @@
       "package": "hayate-sql",
       "role": "Checked SQL and database adapters",
       "source": "uv.lock",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "commit": null,
