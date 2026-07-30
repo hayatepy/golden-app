@@ -150,7 +150,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "hayate", specifier = ">=0.15.2,<0.16" },
-    { name = "hayate-mcp", specifier = ">=0.12,<0.13" },
+    { name = "hayate-mcp", specifier = ">=0.12.1,<0.13" },
     { name = "hayate-openapi", specifier = ">=0.8.1,<0.9" },
     { name = "hayate-sql", specifier = ">=0.1.1,<0.2" },
     { name = "jinja2", specifier = "==3.1.6" },
@@ -209,7 +209,7 @@ wheels = [
 
 [[package]]
 name = "hayate-mcp"
-version = "0.12.0"
+version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "hayate" },
@@ -217,9 +217,9 @@ dependencies = [
     { name = "mcp", marker = "sys_platform != 'emscripten'" },
     { name = "rpds-py", version = "0.23.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/88/cc/33873b7f54d5da36d0073b51273d51b0626fce78f556d1cbe90a24fdd982/hayate_mcp-0.12.0.tar.gz", hash = "sha256:10ae35260b0379a26af08fdbe3e342538cab7eeaf75cf5e149a5a63eb0966465", size = 35008, upload-time = "2026-07-29T18:52:35.9Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/51/3cf87c227923ece7af08a4a1b5370e4ce139137084bd8b6d12b32b545c70/hayate_mcp-0.12.1.tar.gz", hash = "sha256:b1b492236a94ec97eab0f3fca4984091d352400af6d0fe66cf357883e0f12058", size = 35027, upload-time = "2026-07-30T01:00:46.008Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/26/f15a385a77350213c5a66cd16f36395bf8ac9178f320e04415bc72deb43f/hayate_mcp-0.12.0-py3-none-any.whl", hash = "sha256:8ba09db04d4bb54e93d693ae99ff88f093f9b5e04350db30e82e49601877276a", size = 39847, upload-time = "2026-07-29T18:52:34.509Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/c7/4f6af75d44d699503b065f0c531d66c521a74a2bcb5ab3888c756ffb698e/hayate_mcp-0.12.1-py3-none-any.whl", hash = "sha256:dee66183a5bcec1f02ac1c23536182985a1f4c4ae983342d3c1b07c935919b3d", size = 39853, upload-time = "2026-07-30T01:00:44.699Z" },
 ]
 
 [[package]]
