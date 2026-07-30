@@ -1,6 +1,6 @@
 {
-  "generated_by": "create-hayate 0.13.1",
-  "lock_sha256": "400de843b728b759aafc6fa55f1a810021f4c08837dbc6677e33db1313b2bcd8",
+  "generated_by": "create-hayate 0.13.2",
+  "lock_sha256": "35dfece26b2f3dc1f47db4b6439c62ce24da7d80721c40d0535ed20d44ff3446",
   "mcp_revision": "2026-07-28",
   "node": "24",
   "packages": [
@@ -9,14 +9,14 @@
       "package": "create-hayate",
       "role": "Scaffold source",
       "source": "golden-app.toml",
-      "version": "0.13.1"
+      "version": "0.13.2"
     },
     {
       "commit": null,
       "package": "hayate",
       "role": "Application core and runtime adapters",
       "source": "uv.lock",
-      "version": "0.15.1"
+      "version": "0.15.2"
     },
     {
       "commit": null,
