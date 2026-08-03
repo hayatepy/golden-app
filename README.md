@@ -44,16 +44,17 @@ bash scripts/check_workerd.sh class
 bash scripts/check_workerd.sh global
 ```
 
-Both paths create a TODO and digest a bounded upload through authenticated
-HTTP, then read the same identity-scoped data through a stateless MCP
-2026-07-28 `tools/call`.
+Both paths run deterministic Schemathesis coverage and positive fuzzing against
+the live OpenAPI endpoint, create a TODO, and digest a bounded upload through
+authenticated HTTP. They then read the same identity-scoped data through a
+stateless MCP 2026-07-28 `tools/call`.
 
 ## What is integrated
 
 | Boundary | Verified behavior |
 |---|---|
 | Application | One `src/app.py`, WHATWG Request/Response, identity-scoped CRUD |
-| API contract | Typed UUID and binary-file validation, bounded multipart parsing, OpenAPI 3.1.1, hardened Scalar, first-party zero-runtime TypeScript client |
+| API contract | Typed UUID and binary-file validation, bounded multipart parsing, OpenAPI 3.1.1, real-server Schemathesis gate, hardened Scalar, first-party zero-runtime TypeScript client |
 | Agent protocol | MCP 2026-07-28 discovery and structured complete result; 2025-11-25 compatibility |
 | Identity | Explicit local identity; fail-closed Cloudflare Access JWT/JWKS in production |
 | Data | Checked SQL contracts; SQLite on ASGI, D1 binding on Workers |

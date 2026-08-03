@@ -7,6 +7,7 @@ entrypoint="${1:-class}"
 log_file="${test_dir}.${entrypoint}.workerd.log"
 dry_run_log="${test_dir}.${entrypoint}.dry-run.log"
 bundle_dir="${test_dir}/${entrypoint}-bundle"
+persist_dir="${test_dir}/${entrypoint}-state"
 port="${WORKERD_PORT:-8796}"
 server_pid=""
 
@@ -71,9 +72,9 @@ fi
 
 (
   cd "${root}"
-  run_workers d1 migrations apply DB --local
+  run_workers d1 migrations apply DB --local --persist-to "${persist_dir}"
   run_workers deploy --dry-run --outdir "${bundle_dir}" >"${dry_run_log}" 2>&1
-  run_workers dev --port "${port}"
+  run_workers dev --port "${port}" --persist-to "${persist_dir}"
 ) >"${log_file}" 2>&1 &
 server_pid=$!
 
@@ -205,6 +206,10 @@ uv run python -c \
   'import json,sys; value=json.loads(sys.argv[1]); assert value["openapi"] == "3.1.1"; limit=value["paths"]["/todos"]["get"]["parameters"][0]; assert limit == {"name":"limit","in":"query","required":False,"schema":{"type":"integer","minimum":1,"maximum":100,"default":25}}; parameter=value["paths"]["/todos/{id}"]["get"]["parameters"][0]; assert parameter == {"name":"id","in":"path","required":True,"schema":{"type":"string","format":"uuid"}}; create=value["paths"]["/todos"]["post"]["responses"]["201"]["content"]["application/json"]["schema"]; assert create["properties"]["id"] == {"type":"string","format":"uuid"}; listing=value["paths"]["/todos"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]; assert listing["type"] == "array"; assert listing["items"]["properties"]["id"] == {"type":"string","format":"uuid"}' \
   "${openapi}"
 
+bash "${root}/scripts/check_openapi_contract.sh" \
+  "http://127.0.0.1:${port}" \
+  "schemathesis-workerd@example.com"
+
 uploaded="$(
   printf 'portable typed upload' |
     curl --fail --silent --show-error --max-time 10 \
@@ -251,7 +256,7 @@ wait "${server_pid}" 2>/dev/null || true
 server_pid=""
 (
   cd "${root}"
-  run_workers dev --port "${port}"
+  run_workers dev --port "${port}" --persist-to "${persist_dir}"
 ) >>"${log_file}" 2>&1 &
 server_pid=$!
 

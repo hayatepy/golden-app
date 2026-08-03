@@ -12,5 +12,6 @@ python_modules/
 .wrangler/
 node_modules/
 .dev.vars
+.schemathesis/
 app.db
 pylock.toml

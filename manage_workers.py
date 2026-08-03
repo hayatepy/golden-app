@@ -62,6 +62,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         # host override into nested uv calls makes compiled Wasm wheels appear
         # incompatible.
         environment.pop("UV_PYTHON", None)
+        # npm 12 prints package-script notices to stdout before
+        # ``wrangler --version``. Pywrangler treats the first semantic version
+        # in that stream as Wrangler's version, so the application's 0.1.0 can
+        # be misread as an obsolete Wrangler release.
+        environment["NPM_CONFIG_LOGLEVEL"] = "warn"
         environment["CREATE_HAYATE_REAL_NODE"] = real_node
         environment["CREATE_HAYATE_NODE_SHIM_PYTHON"] = sys.executable
         environment["CREATE_HAYATE_NODE_SHIM_SCRIPT"] = str(

@@ -23,5 +23,6 @@ def test_launcher_removes_inherited_uv_python(monkeypatch):
     assert isinstance(environment, dict)
     assert observed["command"] == ["/bin/pywrangler", "dev"]
     assert "UV_PYTHON" not in environment
+    assert environment["NPM_CONFIG_LOGLEVEL"] == "warn"
     assert environment["CREATE_HAYATE_REAL_NODE"] == "/bin/node"
     assert manage_workers.os.environ["UV_PYTHON"] == "3.13.11"
