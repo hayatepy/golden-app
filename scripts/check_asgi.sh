@@ -2,7 +2,8 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-log_file="$(mktemp)"
+test_dir="$(mktemp -d)"
+log_file="${test_dir}/asgi.log"
 port="${ASGI_PORT:-8795}"
 server_pid=""
 
@@ -19,8 +20,13 @@ cleanup() {
 trap cleanup EXIT
 
 (
-  cd "${root}"
-  uv run uvicorn app:app --app-dir src --host 127.0.0.1 --port "${port}"
+  # SQLite resolves app.db from the process working directory. Keep generated
+  # contract cases out of the developer's persistent local database.
+  cd "${test_dir}"
+  uv run --project "${root}" uvicorn app:app \
+    --app-dir "${root}/src" \
+    --host 127.0.0.1 \
+    --port "${port}"
 ) >"${log_file}" 2>&1 &
 server_pid=$!
 
@@ -170,6 +176,10 @@ uv run python -c \
 curl --fail --silent --show-error --max-time 10 \
   "${auth[@]}" \
   "http://127.0.0.1:${port}/docs" >/dev/null
+
+bash "${root}/scripts/check_openapi_contract.sh" \
+  "http://127.0.0.1:${port}" \
+  "schemathesis-asgi@example.com"
 
 uploaded="$(
   printf 'portable typed upload' |
