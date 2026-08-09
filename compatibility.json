@@ -1,6 +1,6 @@
 {
   "generated_by": "create-hayate 0.14.0",
-  "lock_sha256": "f8f329390c8c501f68463d577ff16954b91a07e58fbd5160f68bdb213c34caec",
+  "lock_sha256": "86ab9819afbac9442e6a48fdf608c2915edf379d95122adae0568ef080898403",
   "mcp_revision": "2026-07-28",
   "node": "24",
   "packages": [
